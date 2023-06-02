@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from matplotlib.ticker import AutoMinorLocator
 from tabulate import tabulate
 import numpy as np

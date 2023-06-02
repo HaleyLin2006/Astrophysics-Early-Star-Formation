@@ -2,6 +2,8 @@ from scipy.integrate import odeint
 import numpy as np
 import matplotlib.pyplot as plt
 
+AU = 1.496e+13
+
 def ode(p, x):
     
     v = p[0]
@@ -26,16 +28,20 @@ u = [-(a*i) for i in v]
 alpha = sol[:, 1]
 rho = [[(i/(4*np.pi*6.67e-8*t[0]**2)) for i in alpha], [(i/(4*np.pi*6.67e-8*t[1]**2)) for i in alpha], [(i/(4*np.pi*6.67e-8*t[2]**2)) for i in alpha], [(i/(4*np.pi*6.67e-8*t[3]**2)) for i in alpha]]
 
+
+print("a", alpha)
+print("v", v)
+
 def zero_to_nan(values):
     """Replace every 0 with 'nan' and return a copy."""
     return [float('nan') if x==0 else x for x in values]
 
-plt.xlabel(r"$\log(r)$", fontsize=15)
+plt.xlabel(r"$\log(r)$ AU", fontsize=15)
 plt.ylabel(r"$\log(\rho)$", fontsize=15)
 #plt.ylabel(r"$\log(\mid u \mid)$", fontsize=15)
 for time in range(len(t)):
-    plt.plot(r[time], zero_to_nan(rho[time]), label=f"{t[time]/10**12}e12")
-    #plt.plot(r[time], u, label=f"{t[time]/10**12}e12")
+    plt.plot([i/AU for i in r[time]], zero_to_nan(rho[time]), label=f"{t[time]/10**12}e12")
+    #plt.plot([i/AU for i in r[time]], u, label=f"{t[time]/10**12}e12")
 
 plt.yscale('log')
 plt.xscale('log')

@@ -1,11 +1,20 @@
-# correct w but wrong density
-
 import matplotlib.pyplot as plt
-from scipy.integrate import odeint
+import numpy as np
+from scipy.integrate import odeint, ode
 
 ########################## Equation of Motions ##########################
 
-# quadrupolar solution for x>1 
+#Shu 1977 EOM for a0, v0 used in quadrupolar x<1 and monopolar solution
+def shu_ode(param, x):
+    a = param[0]
+    v = param[1]
+
+    dvdx = 1/((x-v)**2 -1) * (x-v) * (a*(x-v) - 2/x)
+    dadx = a/((x-v)**2 -1) * (x-v) * (a - 2/x*(x-v))
+    
+    return [dadx, dvdx] 
+
+# quadrupolar EOM for x>1 
 def quadrupolar_greater1_ode(param, z):
     a = param[0]
     v = param[1]
@@ -26,77 +35,65 @@ def quadrupolar_greater1_ode(param, z):
 
     return [dadz, dvdz, dwdz, dqdz, dpdz]
 
-# quadrupolar solution for x<1
-def quadrupolar_smaller1_ode(param, z):
+# quadrupolar EOM for x<1
+# adapting Shu (1976) solution for v_0, a_0 needed for the solution
+def quadrupolar_smaller1_ode(z, param, a0, v0):
     a = param[0]
     v = param[1]
     w = param[2]
     q = param[3]
     p = param[4]
 
-    # adapting Shu (1976) solution for v_0, a_0 needed for the solution
-    a_shu = param[5]
-    v_shu = param[6]
-
-    #'''
-    a0 = a_shu
-    v0 = v_shu
-    #'''
-    
-    #a0 = 71.5
-    #v0 = 5.44
-
     # starting from equation 69, 1. change to z=1/x parameter, 2. adapt boundary conditions from equation 26(b), 67(b), and 68
     dadz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(2*z*(a*v0+v*a0) + a-2*v - 6*z*a0*w) + 2*a/a0 + 3*a0*v - 3*q*a0*z**4 + 2*p*a0/z)
+    
+    # cheating?
+    v0 = -v0
+
     dvdz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(2*a/a0**2 + 3*v - z**2 - 3*q*z**4 + 2*p/z) + 2*a*v0*z + a/a0 +2*v*z - 2*v/a0 - 6*w*z)
     dwdz = -2*w/z -a/2/z**2 + q*z**3 + p/z**2
     dqdz = -a/5/z**6
     dpdz = -a/5/z
 
-    #da_shudz = a_shu/((z-v_shu)**2 -1) * (z-v_shu) * (a_shu - 2/z*(z-v_shu))
-    #dv_shudz = 1/((z-v_shu)**2 -1) * (z-v_shu) * (a_shu*(z-v_shu) - 2/z)
-
-    da_shudz = a0/((z*v0-1)**2 +z**2) * (1/z-v0) * (a0 - 2*z*(1/z-v0))
-    dv_shudz = 1/((z*v0-1)**2 +z**2) * (1/z-v0) * (a0*(1/z-v0) - 2*z)
-
     # physical constraint, dadz can never be negative, i.e. you can never take away density
     if (dadz <0):
         dadz = 0
 
-    return [dadz, dvdz, dwdz, dqdz, dpdz, da_shudz, dv_shudz]
+    return [dadz, dvdz, dwdz, dqdz, dpdz]
 
-def monopolar_smaller1_ode(param, z):
+# adapting Shu (1976) solution for v_0, a_0 needed for the solution
+def monopolar_smaller1_ode(z, param, a0, v0):
     a = param[0]
     v = param[1]
     m = param[2]
 
-    # adapting Shu (1976) solution for v_0, a_0 needed for the solution
-    a_shu = param[3]
-    v_shu = param[4]
-
-    a0 = a_shu
-    v0 = v_shu
     m0 = 1/z**2*a0*(1/z-v0)
 
     # 1. change to z=1/x parameter, 2. following equation 73 and 74, following constraints of equation 78, 79
     dadz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(a*v0*z + a + 2*v*a0*z - 2*v) + 2*a/a0 +3*a0*v + a0*(1/(6*z) + z**2*m - 2/3*(m0/2)**4*z**3))
     dvdz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(2*a/a0**2 + 3*v + 1/(6*z) + z**2*m -2/3*(m0/2)**4*z**3) + 1/a0*(a*v0*z + a + 2*v*a0*z -2*v))
     dmdz = 1/z**2*(a-1/2)
-
-    da_shudz = -a_shu/((z*v_shu-1)**2 + z**2) * ((1/z-v_shu)*(a_shu - 2*z*(1/z - v_shu)))
-    dv_shudz = 1/((z*v_shu-1)**2 + z**2) * ((1/z-v_shu)*(a_shu*(1/z - v_shu) - 2*z))
     
-    return [dadz, dvdz, dmdz, da_shudz, dv_shudz]
+    return [dadz, dvdz, dmdz]
 
 ############# Numerical Solutions to the Equation of Motions #############
 
-#numbers of data points sampled
-fine = 1000
+# number of data points sampled
+fine = 10000
 
 # the "scale" for the following calculation, in z=1/x coordinate
+z_shu = [i for i in range(fine, 1, -1)]
 z_g1 = [i/fine  for i in range(1, fine)]
 z_s1 = [i for i in range(1, fine)]
 z_mono = [i for i in range(1, fine)]
+
+# boundary conditions for Shu 1977
+p0 = [2, 0]
+
+#solution for Shu 1977
+sol_shu = odeint(shu_ode, p0, z_shu)
+a_shu = [i for i in sol_shu[:, 0]]
+v_shu = [-i for i in sol_shu[:, 1]]
 
 # boundary condition for quandrupolar, x>1 model
 # adopting equation 65 and 70, K given in III-c of the paper
@@ -106,7 +103,6 @@ param0_g1 = [0, 0, 0, K, 0]
 
 # solution for quadrupolar, x>1 model
 sol_g1 = odeint(quadrupolar_greater1_ode, param0_g1, z_g1)
-
 a_g = sol_g1[:, 0]
 v_g = sol_g1[:, 1]
 w_g = sol_g1[:, 2] #continuous through x=1
@@ -114,48 +110,63 @@ w_g = sol_g1[:, 2] #continuous through x=1
 # boaundary condition for quadrupolar, x<1 model
 # adopting equation 67 and 68 to go over the x=1 discontinuity. a_shu and v_shu from Shu(1976)
 # here, we manually take limit by sampling points close to 1, such that a(1+e) = a(1) = a(1-e), where e is an arbitrary small number
-# a, v, w, q, p, a_shu, v_shu
-param0_s1 = [a_g[-1]+2/3*v_g[-1], 2/3*v_g[-1], w_g[-1], K*(1+1/35), -2*K/245, 2, 0]
+# a, v, w, q, p
+param0_s1 = [a_g[-1]+2/3*v_g[-1], 2/3*v_g[-1], w_g[-1], K*(1+1/35), -2*K/245]
 
 # solution for quadrupolar, x<1 model
-sol_s1 = odeint(quadrupolar_smaller1_ode, param0_s1, z_s1)
+sol_s1 = np.zeros((len(z_s1), len(param0_s1)))
+sol_s1[0, :] = param0_s1
+f_s1 = ode(quadrupolar_smaller1_ode)
+f_s1.set_initial_value(param0_s1, z_s1[0])
+f_s1.set_f_params(a_shu[0], v_shu[0])
 
-a_s = sol_s1[:, 0]
-v_s = sol_s1[:, 1]
+for i in range(1, len(z_s1)):
+    sol_s1[i, :] = f_s1.integrate(z_s1[i])
+    f_s1.set_initial_value(sol_s1[i, :], z_s1[i])
+    f_s1.set_f_params(a_shu[i], v_shu[i])
 
 # boundary condition for monopolar, x<1 model
 # adopting equation 78 and 79. a_shu, v_shu from Shu(1976)
-# a, v, m, a_shu, v_shu
-param0_mono = [1/2, 0, 0, 2, 0]
+# a, v, m
+param0_mono = [1/2, 0, 0]
 
 # solution for monopolar, x<1 model
-sol_mono = odeint(monopolar_smaller1_ode, param0_mono, z_mono)
+sol_m = np.zeros((len(z_mono), len(param0_mono)))
+sol_m[0, :] = param0_mono
+f_m = ode(monopolar_smaller1_ode)
+f_m.set_initial_value(param0_mono, z_mono[0])
+f_m.set_f_params(a_shu[0], v_shu[0])
 
-a_m = sol_mono[:, 0]
-v_m = sol_mono[:, 1]
+for i in range(1, len(z_mono)):
+    sol_m[i, :] = f_m.integrate(z_mono[i])
+    f_m.set_initial_value(sol_m[i, :], z_mono[i])
+    f_m.set_f_params(a_shu[i], v_shu[i])
 
 ######################## Plotting the Solutions ########################
 
+# Shu 1977
+#plt.plot([i/fine for i in z_shu], sol_shu[:, 0], label=r"$\alpha_0$")                          # alpha_0
+#plt.plot([i/fine for i in z_shu], [-i for i in sol_shu[:, 1]], label=r"$v_0$")                 #v_0
+
+
 # quadrupolar, x>1 model
 # 1/i to change z=1/x back to x coordinate
-plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')
-plt.plot([1/i for i in z_g1], sol_g1[:, 1], label=r"$v_Q$", color= 'blue')  
-plt.plot([1/i for i in z_g1], sol_g1[:, 2], label=r"$w_Q$", color='green')
+#plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')                  # alpha_Q 
+#plt.plot([1/i for i in z_g1], sol_g1[:, 1], label=r"$v_Q$", color= 'blue')                     # -v_Q
+#plt.plot([1/i for i in z_g1], sol_g1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
 
 
 # quandrupolar, x<1 model
-plt.plot([1/i for i in z_s1], sol_s1[:, 0], label=r"$\alpha_Q$", color='red')    
-plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 1]], label=r"$-v_Q$", color='blue')  
-plt.plot([1/i for i in z_s1], sol_s1[:, 2], label=r"$w_Q$", color='green')
-#plt.plot([1/i for i in z_s1], sol_s1[:, 5], label=r"$a_0$", color='orange')
-#plt.plot([1/i for i in z_s1], [i for i in sol_s1[:, 6]], label=r"$v_0$", color='yellow')
+#plt.plot([1/i for i in z_s1], sol_s1[:, 0], label=r"$\alpha_Q$", color='red')                  # alpha_Q
+#plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 1]], label=r"$-v_Q$", color='blue')       # -v_Q
+#plt.plot([1/i for i in z_s1], sol_s1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
 
+
+#monopolar is incorrect
 # monopolar, x<1 model
-#plt.plot([1/i for i in z_mono], sol_mono[:, 0], label = r"$a_m$")
-#plt.plot([1/i for i in z_mono], sol_mono[:, 1], label = r"$v_m$")
-#plt.plot([1/i for i in z_mono], [-i for i in sol_mono[:, 4]], label = r"$-v_0$") # v shu
-#plt.plot([1/i for i in z_mono], sol_mono[:, 3], label = r"$a_0$") # a shu
- 
+#plt.plot([1/i for i in z_mono], sol_m[:, 0], label = r"$a_m$")
+#plt.plot([1/i for i in z_mono], sol_m[:, 1], label = r"$v_m$")
+
 
 plt.xscale('log')
 plt.yscale('log')

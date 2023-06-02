@@ -9,15 +9,14 @@ def ode(param, x):
     dvdx = 1/((x-v)**2 -1) * (x-v) * (a*(x-v) - 2/x)
     dadx = a/((x-v)**2 -1) * (x-v) * (a - 2/x*(x-v))
 
-    #dvdx = 1/((z*v-z)**2 + z**2) * (1/z-v) * (a*(1/z-v) - 2*z)
-    #dadx = a/((z*v-z)**2 + z**2) * (1/z-v) * (a*(1/z-v) - 2*z)
     
     return [dadx, dvdx]
 
 fine = 10 
-z = [i for i in range(fine, 2, -1)]
+x = [i for i in range(fine, 1, -1)]
 p0 = [2, 0]
-sol = odeint(ode, p0, z)
+
+sol = odeint(ode, p0, x)
 
 a = [i for i in sol[:, 0]]
 v = [-i for i in sol[:, 1]]
@@ -41,8 +40,8 @@ for t in time:
 
 #print(v)
 
-plt.plot([i/fine for i in z], a, color='red', label='a')
-plt.plot([i/fine for i in z], v, color='blue', label='v')
+plt.plot([i/fine for i in x], a, color='red', label='a')
+plt.plot([i/fine for i in x], v, color='blue', label='v')
 
 #print(a)
 plt.legend()

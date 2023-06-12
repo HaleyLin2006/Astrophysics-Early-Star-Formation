@@ -106,12 +106,15 @@ def monopolar_smaller1_ode(z, param, a0, v0):
 ############# Numerical Solutions to the Equation of Motions #############
 
 # number of data points sampled
-fine = 1000
+fine = 100
 
 # the "scale" for the following calculation, in z=1/x coordinate
-z_shu = [i for i in range(fine, 1, -1)]
-z_g1 = [i/fine  for i in range(1, fine)]
-z_s1 = [i for i in range(1, fine)]
+z_shu = [i for i in range(fine, 0, -1)]
+z_g1 = np.flip(np.logspace(0, -3, fine))
+#z_g1 = [i/fine  for i in range(1, fine)]
+z_s1 = np.logspace(0, 3, fine)
+print(z_g1)
+#z_s1 = [i for i in range(1, fine)]
 z_mono = [i for i in range(1, fine)]
 
 # boundary conditions for Shu 1977
@@ -122,7 +125,7 @@ sol_shu = odeint(shu_ode, p0, z_shu)
 a_shu = [i for i in sol_shu[:, 0]]
 v_shu = [-i for i in sol_shu[:, 1]]
 
-print(store_dvdx[0])
+#print(store_dvdx[0])
 
 # boundary condition for quandrupolar, x>1 model
 # adopting equation 65 and 70, K given in III-c of the paper
@@ -147,11 +150,13 @@ sol_s1 = np.zeros((len(z_s1), len(param0_s1)))
 sol_s1[0, :] = param0_s1
 f_s1 = ode(quadrupolar_smaller1_ode)
 f_s1.set_initial_value(param0_s1, z_s1[0])
+f_s1.set_integrator("vode", method = "bdf")
 f_s1.set_f_params(a_shu[0], v_shu[0])
 
 for i in range(1, len(z_s1)):
     sol_s1[i, :] = f_s1.integrate(z_s1[i])
     f_s1.set_initial_value(sol_s1[i, :], z_s1[i])
+    #print(i)
     f_s1.set_f_params(a_shu[i], v_shu[i])
 
 
@@ -177,20 +182,20 @@ for i in range(1, len(z_mono)):
 ######################## Plotting the Solutions ########################
 
 # Shu 1977
-plt.plot([i/fine for i in z_shu], sol_shu[:, 0], label=r"$\alpha_0$")                          # alpha_0
+#plt.plot([i/fine for i in z_shu], sol_shu[:, 0], label=r"$\alpha_0$")                          # alpha_0
 #plt.plot([i/fine for i in z_shu], [-i for i in sol_shu[:, 1]], label=r"$-v_0$")                # v_0
 
 # quadrupolar, x>1 model
 # 1/i to change z=1/x back to x coordinate
-plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')                  # alpha_Q 
-#plt.plot([1/i for i in z_g1], sol_g1[:, 1], label=r"$v_Q$", color= 'blue')                     # -v_Q
-#plt.plot([1/i for i in z_g1], sol_g1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
+#plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')                  # alpha_Q 
+plt.plot([1/i for i in z_g1], sol_g1[:, 1], label=r"$v_Q$", color= 'blue')                     # -v_Q
+plt.plot([1/i for i in z_g1], sol_g1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
 
 
 # quandrupolar, x<1 model
-plt.plot([1/i for i in z_s1], sol_s1[:, 0], label=r"$\alpha_Q$", color='red')                 # alpha_Q
-#plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 1]], label=r"$-v_Q$", color='blue')       # -v_Q
-#plt.plot([1/i for i in z_s1], sol_s1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
+#plt.plot([1/i for i in z_s1], sol_s1[:, 0], label=r"$\alpha_Q$", color='red')                 # alpha_Q
+plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 1]], label=r"$-v_Q$", color='blue')       # -v_Q
+plt.plot([1/i for i in z_s1], sol_s1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
 
 #monopolar is incorrect
 # monopolar, x<1 model

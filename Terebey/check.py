@@ -1,3 +1,8 @@
+# change to right EOM
+# alpha need to be more smoorth
+# w is right, but v is wrong
+# haven't incorporate shu
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import odeint, ode
@@ -52,27 +57,10 @@ def quadrupolar_smaller1_ode(z, param, a0, v0):
     q = param[3]
     p = param[4]
 
-    '''
-    A_Q = a*z**2*(2/z - dv0dz) + v*z**2*(2/z - da0dz) - 6*z*a0*w
-    B_Q = a/(a0**2)*(z**2)*da0dz + (2+dv0dz)*v - 3*q*z**4 + 2*p/z
-
-    dadz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*A_Q + a0*B_Q)
-    
-    v0 = -v0
-
-    dvdz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*B_Q + 1/a0*A_Q)
-    dwdz = -2*w/z -a/2/z**2 + q*z**3 + p/z**2
-    dqdz = -a/5/z**6
-    dpdz = -a/5/z
-
-    '''
     # starting from equation 69, 1. change to z=1/x parameter, 2. adapt boundary conditions from equation 26(b), 67(b), and 68
-    dadz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(2*z*(a*v0+v*a0) + a-2*v - 6*z*a0*w) + 2*a/a0 + 3*a0*v - 3*q*a0*z**4 + 2*p*a0/z)
-    
-    # cheating?
-    v0 = -v0
+    dadz = -1/((1-z*v0)**2 - z**2) * ((1/z-v0)*(2*z*(a*v0+v*a0) + a-2*v - 6*z*a0*w) + 2*a/a0 + 3*a0*v - 3*q*a0*z**4 + 2*p*a0/z)
 
-    dvdz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(2*a/a0**2 + 3*v - z**2 - 3*q*z**4 + 2*p/z) + 2*a*v0*z + a/a0 +2*v*z - 2*v/a0 - 6*w*z)
+    dvdz = -1/((1-z*v0)**2 - z**2) * ((1/z-v0)*(2*a/a0**2 + 3*v - z**2 - 3*q*z**4 + 2*p/z) + 2*a*v0*z + a/a0 +2*v*z - 2*v/a0 - 6*w*z)
     dwdz = -2*w/z -a/2/z**2 + q*z**3 + p/z**2
     dqdz = -a/5/z**6
     dpdz = -a/5/z
@@ -93,8 +81,8 @@ def monopolar_smaller1_ode(z, param, a0, v0):
     dpsidz = -m - 1/(6*z**3)
 
     # 1. change to z=1/x parameter, 2. following equation 73 and 74, following constraints of equation 78, 79
-    dadz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(2*a*v0*z + a + 2*v*a0*z - 2*v) + 2*a/a0 +3*a0*v + a0*(-z**2*dpsidz - 2/3*(m0/2)**4*z**3))
-    dvdz = 1/((z*v0-1)**2 + z**2) * ((1/z-v0)*(2*a/a0**2 + 3*v -z**2*dpsidz - 2/3*(m0/2)**4*z**3) + 1/a0*(2*a*v0*z + a + 2*v*a0*z - 2*v))
+    dadz = -1/((1-z*v0)**2 - z**2) * ((1/z-v0)*(2*a*v0*z + a + 2*v*a0*z - 2*v) + 2*a/a0 +3*a0*v + a0*(-z**2*dpsidz - 2/3*(m0/2)**4*z**3))
+    dvdz = -1/((1-z*v0)**2 - z**2) * ((1/z-v0)*(2*a/a0**2 + 3*v -z**2*dpsidz - 2/3*(m0/2)**4*z**3) + 1/a0*(2*a*v0*z + a + 2*v*a0*z - 2*v))
     dmdz = 1/z**2*(a-1/2)
 
     # cheating?    
@@ -106,14 +94,13 @@ def monopolar_smaller1_ode(z, param, a0, v0):
 ############# Numerical Solutions to the Equation of Motions #############
 
 # number of data points sampled
-fine = 100
+fine = 1000
 
 # the "scale" for the following calculation, in z=1/x coordinate
 z_shu = [i for i in range(fine, 0, -1)]
-z_g1 = np.logspace(-3, 0, fine)
+z_g1 = np.flip(np.logspace(0, -3, fine))
 #z_g1 = [i/fine  for i in range(1, fine)]
 z_s1 = np.logspace(0, 3, fine)
-print(z_g1)
 #z_s1 = [i for i in range(1, fine)]
 z_mono = [i for i in range(1, fine)]
 
@@ -159,7 +146,6 @@ for i in range(1, len(z_s1)):
     #print(i)
     f_s1.set_f_params(a_shu[i], v_shu[i])
 
-
 # boundary condition for monopolar, x<1 model
 # adopting equation 78 and 79. a_shu, v_shu from Shu(1976)
 # a, v, m
@@ -187,15 +173,14 @@ for i in range(1, len(z_mono)):
 
 # quadrupolar, x>1 model
 # 1/i to change z=1/x back to x coordinate
-plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')                  # alpha_Q 
-#plt.plot([1/i for i in z_g1], sol_g1[:, 1], label=r"$v_Q$", color= 'blue')                     # -v_Q
-#plt.plot([1/i for i in z_g1], sol_g1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
-
+#plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')                  # alpha_Q 
+plt.plot([1/i for i in z_g1], sol_g1[:, 1], label=r"$v_Q$", color= 'blue')                     # -v_Q
+plt.plot([1/i for i in z_g1], sol_g1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
 
 # quandrupolar, x<1 model
-plt.plot([1/i for i in z_s1], sol_s1[:, 0], label=r"$\alpha_Q$", color='red')                 # alpha_Q
-#plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 1]], label=r"$-v_Q$", color='blue')       # -v_Q
-#plt.plot([1/i for i in z_s1], sol_s1[:, 2], label=r"$w_Q$", color='green')                     # w_Q
+#plt.plot([1/i for i in z_s1], sol_s1[:, 0], label=r"$\alpha_Q$", color='red')                 # alpha_Q
+plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 1]], label=r"$-v_Q$", color='blue')       # -v_Q
+plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 2]], label=r"$w_Q$", color='green')                     # w_Q
 
 #monopolar is incorrect
 # monopolar, x<1 model

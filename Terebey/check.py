@@ -1,3 +1,4 @@
+'''
 # change to right EOM
 # alpha need to be more smoorth
 # w is right, but v is wrong
@@ -64,7 +65,7 @@ def quadrupolar_smaller1_ode(z, param, a0, v0):
     dwdz = -2*w/z -a/2/z**2 + q*z**3 + p/z**2
     dqdz = -a/5/z**6
     dpdz = -a/5/z
-    #'''
+    #
 
     # physical constraint, dadz can never be negative, i.e. you can never take away density
     if (dadz < 0):
@@ -151,7 +152,7 @@ for i in range(1, len(z_s1)):
 # a, v, m
 param0_mono = [1/2, 0, 0]
 
-#'''
+#
 # solution for monopolar, x<1 model
 sol_m = np.zeros((len(z_mono), len(param0_mono)))
 sol_m[0, :] = param0_mono
@@ -163,7 +164,7 @@ for i in range(1, len(z_mono)):
     sol_m[i, :] = f_m.integrate(z_mono[i])
     f_m.set_initial_value(sol_m[i, :], z_mono[i])
     f_m.set_f_params(a_shu[i], v_shu[i])
-#'''
+#
 
 ######################## Plotting the Solutions ########################
 
@@ -199,3 +200,9 @@ plt.show()
 
 # problems:
 # need to adopt dv0dx, da0dx x-dependent --> maybe change shu to z coordinate
+'''
+import numpy as np
+sample_pts = 1000
+sample_range = 3 
+z_g1 = [2/(i+1) for i in np.logspace(sample_range, 0, sample_pts)]
+

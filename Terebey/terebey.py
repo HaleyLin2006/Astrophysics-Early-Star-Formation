@@ -66,7 +66,7 @@ def quadrupolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
     dpsidz = 2/(3*z) - 3*q*z**2 + 2*p/z
 
     A = a*z**2*(2*v0/z - dv0dz) + v*z**2*(2*a0/z - da0dz) - 6*z*a0*w
-    B = -a/(a0**2)*da0dz*z**2 + (2-z**2*dv0dz)*v - z**2*dpsidz - 2/3*(m0/2)**4*z**3 # negative sign
+    B = -a/(a0**2)*da0dz*z**2 + (2-z**2*dv0dz)*v - z**2*dpsidz - 2/3*(m0/2)**4*z**3
 
     # starting from equation 69, 1. change to z=1/x parameter, 2. adapt boundary conditions from equation 26(b), 67(b), and 68\
     dadz = -1/((1-z*v0)**2 - z**2) * ((1/z-v0)*A + a0*B)
@@ -88,19 +88,17 @@ def quadrupolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
 
     return [dadz, dvdz, dwdz, dqdz, dpdz]
 
-def monopolar_greater1_ode(z, param, a0, v0): 
+def monopolar_greater1_ode(param, z): 
     a = param[0]
     v = param[1]
     m = param[2]
 
-    m0 = 1/z**2*a0*(1/z-v0)
     dpsidz = -m - 1/(6*z**3)
 
-    A = v*z**2 * (4*z + 4/z)
-    B = -a/z**3 + 2*v - z**2*dpsidz - 2/3*(m0/2)**4*z**3
+    B = a/z + 2*v -z**2*dpsidz - 2/(3*z)
 
-    dadz = 1/(z**2-1) * (A/z + 2*z**2*B)
-    dvdz = 1/(z**2-1) * (B/z + A/(2*z**2))
+    dadz = 1/(z**2-1) * (a*B)
+    dvdz = 1/(z**2-1) * (B/z)
     dmdz = -1/z**4 * (a-1/2)
 
     return [dadz, dvdz, dmdz]
@@ -122,7 +120,7 @@ def monopolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
     dvdz = -1/((1-z*v0)**2 - z**2) * ((1/z-v0)*B + A/a0)
     dmdz = -1/z**4 * (a-1/2)
 
-    #'''
+    '''
     global count_mono
     if count_mono%100 == 0:
         print("z", z, (1/z-v0)*A, a0*B)
@@ -132,7 +130,7 @@ def monopolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
 
     # cheating?    
     #if (dadz < 0):
-    #    dadz = -dadz
+    #    dadz = 0
 
     #print("monopolar x<1, z:", z)
     
@@ -217,9 +215,16 @@ for i in range(1, len(z_s1)):
     f_s1.set_initial_value(sol_s1[i, :], z_s1[i])
     f_s1.set_f_params(a_shu_s1[i], v_shu_s1[i], store_dadz[i], store_dvdz[i])
 
+param0_mono_g1 = [1/2, 0, 0]
+# solution for monopolar, x>1 model
+sol_mono_g1 = odeint(monopolar_greater1_ode, param0_mono_g1, z_g1)
+a_mono_g = sol_mono_g1[:, 0]
+v_mono_g = sol_mono_g1[:, 1]
+m_mono_g = sol_mono_g1[:, 2] #continuous through x=1
 
 # initial condition for monopolar x<1 model
-param0_mono_s1 = [1/2, 0, 0]
+param0_mono_s1 = [a_mono_g[-1], v_mono_g[-1], m_mono_g[-1]]
+print(param0_mono_s1)
 
 # solution for monopolar, x<1 model
 sol_mono_s1 = np.zeros((len(z_s1), len(param0_mono_s1)))
@@ -278,7 +283,7 @@ if graph_type == 1:
     plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')
     plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 0]], label=r"$-\alpha_Q$", color='red')                 
     # monopolar
-    plt.plot([1/i for i in z_g1], [1/2 for i in z_g1], label=r"$a_m$", color='blue')
+    plt.plot([1/i for i in z_g1], [i for i in a_mono_g], label=r"$a_m$", color='blue')
     plt.plot([1/i for i in z_s1], [i for i in sol_mono_s1[:, 0]], label = r"$a_m$", color='blue')
 
 if graph_type == 2:
@@ -291,7 +296,6 @@ if graph_type == 2:
 if graph_type == 3:
     plt.plot([1/i for i in z_s1], [-i for i in sol_shu_s1[:, 1]], color='orange', label='-v shu')
     plt.plot([1/i for i in z_s1], sol_mono_s1[:, 1], label = r"$v_m$")
-
 
 plt.legend()
 plt.yscale('log')

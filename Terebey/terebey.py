@@ -245,14 +245,14 @@ v_mono_s1 = [i for i in sol_mono_s1[:, 1]]
 #plt.plot([1/i for i in z_s1], [i for i in sol_mono_s1[:, 0]], label = r"$a_m$", color='blue')
 #plt.plot([1/i for i in z_s1], sol_mono_s1[:, 1], label = r"$v_m$")
 
-graph_type = 3
+graph_type = 1
 if graph_type == 1:
     # Shu
     plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu', linewidth=2)
     plt.plot([1/i for i in z_s1], [i for i in sol_shu_s1[:, 0]], color='orange', linewidth=2)
     # quadrupolar
     plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 0]], label=r"$-\alpha_Q$", color='red', linewidth=2)
-    plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 0]], color='red', linewidth=2)                 
+    plt.plot([1/i for i in z_s1], [abs(i) for i in sol_s1[:, 0]], color='red', linewidth=2)                 
     # monopolar
     plt.plot([1/i for i in z_g1], [i for i in a_mono_g], label=r"$a_m$", color='blue', linewidth=2)
     plt.plot([1/i for i in z_s1], [i for i in sol_mono_s1[:, 0]], color='blue', linewidth=2)

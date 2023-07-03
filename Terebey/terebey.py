@@ -51,9 +51,6 @@ def quadrupolar_greater1_ode(param, z):
     return [dadz, dvdz, dwdz, dqdz, dpdz]
 
 # quadrupolar EOM for x<1
-a_q = []
-b_q = []
-count = 0
 def quadrupolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
     a = param[0]
     v = param[1]
@@ -75,14 +72,6 @@ def quadrupolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
     dqdz = -a/5/z**6
     dpdz = -a/5/z
 
-    '''
-    global count
-    if count%100 == 0:
-        print("z", z, (1/z-v0)*A, a0*B)
-        print(dadz)
-    count += 1
-    #'''
-
     # progress recorder
     print("quadruploar x<1, z:", z)
 
@@ -103,7 +92,6 @@ def monopolar_greater1_ode(param, z):
 
     return [dadz, dvdz, dmdz]
 
-count_mono = 0
 def monopolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
     a = param[0]
     v = param[1]
@@ -120,19 +108,11 @@ def monopolar_smaller1_ode(z, param, a0, v0, da0dz, dv0dz):
     dvdz = -1/((1-z*v0)**2 - z**2) * ((1/z-v0)*B + A/a0)
     dmdz = -1/z**4 * (a-1/2)
 
-    '''
-    global count_mono
-    if count_mono%100 == 0:
-        print("z", z, (1/z-v0)*A, a0*B)
-        print(dadz)
-    count_mono += 1
-    #'''
-
     # cheating?    
     #if (dadz < 0):
-    #    dadz = 0
+    #    dvdz = -dadz
 
-    #print("monopolar x<1, z:", z)
+    print("monopolar x<1, z:", z)
     
     return [dadz, dvdz, dmdz]
 
@@ -224,7 +204,6 @@ m_mono_g = sol_mono_g1[:, 2] #continuous through x=1
 
 # initial condition for monopolar x<1 model
 param0_mono_s1 = [a_mono_g[-1], v_mono_g[-1], m_mono_g[-1]]
-print(param0_mono_s1)
 
 # solution for monopolar, x<1 model
 sol_mono_s1 = np.zeros((len(z_s1), len(param0_mono_s1)))
@@ -256,48 +235,42 @@ v_mono_s1 = [i for i in sol_mono_s1[:, 1]]
 #plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 1]], label=r"$v_Q$", color= 'blue')                     # -v_Q
 #plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 2]], label=r"$w_Q$", color='green')                     # w_Q
 
-
-#for count in range(len(sol_mono_s1[:, 0])):
-#    if count%10 == 0:
-#        print("x:", 1/z_s1[count], sol_mono_s1[:, 0][count])
-#    count += 1
-
-
 # quandrupolar, x<1 model
 #plt.plot([1/i for i in z_s1], [abs(i) for i in sol_s1[:, 0]], label=r"$-\alpha_Q$", color='red')                 # alpha_Q
 #plt.plot([1/i for i in z_s1], [i for i in sol_s1[:, 1]], label=r"$v_Q$", color='blue')       # -v_Q
 #plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 2]], label=r"$w_Q$", color='green')         # w_Q
 
-#monopolar is incorrect
 #plt.plot([1/i for i in z_g1], [1/2 for i in z_g1], label=r"$a_m$", color='blue')
 # monopolar, x<1 model
 #plt.plot([1/i for i in z_s1], [i for i in sol_mono_s1[:, 0]], label = r"$a_m$", color='blue')
 #plt.plot([1/i for i in z_s1], sol_mono_s1[:, 1], label = r"$v_m$")
 
-graph_type = 1
+graph_type = 3
 if graph_type == 1:
     # Shu
-    plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu')
-    plt.plot([1/i for i in z_s1], [i for i in sol_shu_s1[:, 0]], color='orange', label='a shu')
+    plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu', linewidth=2)
+    plt.plot([1/i for i in z_s1], [i for i in sol_shu_s1[:, 0]], color='orange', linewidth=2)
     # quadrupolar
-    plt.plot([1/i for i in z_g1], sol_g1[:, 0], label=r"$\alpha_Q$", color='red')
-    plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 0]], label=r"$-\alpha_Q$", color='red')                 
+    plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 0]], label=r"$-\alpha_Q$", color='red', linewidth=2)
+    plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 0]], color='red', linewidth=2)                 
     # monopolar
-    plt.plot([1/i for i in z_g1], [i for i in a_mono_g], label=r"$a_m$", color='blue')
-    plt.plot([1/i for i in z_s1], [i for i in sol_mono_s1[:, 0]], label = r"$a_m$", color='blue')
+    plt.plot([1/i for i in z_g1], [i for i in a_mono_g], label=r"$a_m$", color='blue', linewidth=2)
+    plt.plot([1/i for i in z_s1], [i for i in sol_mono_s1[:, 0]], color='blue', linewidth=2)
 
 if graph_type == 2:
-    plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 1]], label=r"$v_Q$", color= 'blue')
-    plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 2]], label=r"$w_Q$", color='green')
-
-    plt.plot([1/i for i in z_s1], [i for i in sol_s1[:, 1]], label=r"$v_Q$", color='blue')       
-    plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 2]], label=r"$w_Q$", color='green') 
+    plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 1]], label=r"$v_Q$", color= 'blue', linewidth=2)
+    plt.plot([1/i for i in z_s1], [i for i in sol_s1[:, 1]], color='blue', linewidth=2)       
+    
+    plt.plot([1/i for i in z_g1], [i for i in sol_g1[:, 2]], label=r"$-w_Q$", color='green', linewidth=2)
+    plt.plot([1/i for i in z_s1], [-i for i in sol_s1[:, 2]], color='green', linewidth=2)
+ 
 
 if graph_type == 3:
-    plt.plot([1/i for i in z_s1], [-i for i in sol_shu_s1[:, 1]], color='orange', label='-v shu')
-    plt.plot([1/i for i in z_s1], sol_mono_s1[:, 1], label = r"$v_m$")
+    plt.plot([1/i for i in z_s1], [-i for i in sol_shu_s1[:, 1]], color='orange', label='-v shu', linewidth=2)
+    plt.plot([1/i for i in z_s1], sol_mono_s1[:, 1], label = r"$v_m$", linewidth=2)
 
-plt.legend()
+plt.legend(loc='lower left', fontsize="15")
+plt.xlabel(r'$\logx$')
 plt.yscale('log')
 plt.xscale('log')
 

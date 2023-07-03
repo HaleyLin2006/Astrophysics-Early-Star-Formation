@@ -18,8 +18,8 @@ for t in tau:
         sigma_i = m/(np.pi*R0**2) * (x**(-1/4)/t) * np.exp(-(1+x**2)/t) * iv(1/4, 2*x/t)
         sigma[-1].append(sigma_i)
 
-#for i in range(len(sigma)):
-#    plt.plot(r, sigma[i], label=tau[i])
+for i in range(len(sigma)):
+    plt.plot(r, sigma[i], label=tau[i])
 
 ############ Figure 5 ############
 
@@ -35,11 +35,14 @@ for t in time:
         sigma_i = C*t**(-3/2)/(3*np.pi*r[i]) * np.exp(-(r[i]/R1)/t)
         sigma[-1].append(sigma_i)
 
-for i in range(len(sigma)):
-    plt.plot(r, sigma[i], label=f't={time[i]}')
+#for i in range(len(sigma)):
+#    plt.plot(r, sigma[i], label=f't={time[i]}')
 
-plt.xscale('log')
-plt.yscale('log')
+#plt.xscale('log')
+#plt.yscale('log')
+
+plt.xlabel(r'$R$')
+plt.ylabel(r'$\Sigma$')
 
 plt.legend()
 plt.show()

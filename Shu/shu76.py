@@ -19,6 +19,7 @@ def ode(param, x):
 fine = 1000
 # integrate backward from x=1 (divide it back at the end, so that x=1)
 x = [i for i in range(fine, 1, -1)]
+print(x)
 
 # initial condition, given by table 2, solution for x=1
 p0 = [2, 0]

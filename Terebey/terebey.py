@@ -223,11 +223,11 @@ v_mono_s1 = [i for i in sol_mono_s1[:, 1]]
 
 ######################## Plotting the Solutions ########################
 # Shu
-#plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu')
-#plt.plot([1/i for i in z_g1], [-i for i in v_shu_g1], color='orange', label='-v shu')
+plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu')
+plt.plot([1/i for i in z_g1], [-i for i in v_shu_g1], color='orange', label='-v shu')
 
-#plt.plot([1/i for i in z_s1], [i for i in sol_shu_s1[:, 0]], color='orange', label='a shu')
-#plt.plot([1/i for i in z_s1], [-i for i in sol_shu_s1[:, 1]], color='orange', label='-v shu')     
+plt.plot([1/i for i in z_s1], [i for i in sol_shu_s1[:, 0]], color='orange', label='a shu')
+plt.plot([1/i for i in z_s1], [-i for i in sol_shu_s1[:, 1]], color='orange', label='-v shu')     
 
 # quadrupolar, x>1 model
 # 1/i to change z=1/x back to x coordinate
@@ -245,6 +245,7 @@ v_mono_s1 = [i for i in sol_mono_s1[:, 1]]
 #plt.plot([1/i for i in z_s1], [i for i in sol_mono_s1[:, 0]], label = r"$a_m$", color='blue')
 #plt.plot([1/i for i in z_s1], sol_mono_s1[:, 1], label = r"$v_m$")
 
+'''
 graph_type = 1
 if graph_type == 1:
     # Shu
@@ -268,6 +269,7 @@ if graph_type == 2:
 if graph_type == 3:
     plt.plot([1/i for i in z_s1], [-i for i in sol_shu_s1[:, 1]], color='orange', label='-v shu', linewidth=2)
     plt.plot([1/i for i in z_s1], sol_mono_s1[:, 1], label = r"$v_m$", linewidth=2)
+#'''
 
 plt.legend(loc='lower left', fontsize="15")
 plt.xlabel(r'$\logx$')

@@ -1,11 +1,15 @@
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint, ode
+from scipy.special import legendre
 import numpy as np
 
 #universal constant in cgs
 AU = 1.496e+13
 G = 6.67e-8
-M = 1.989e+33 # 1 solar mass
+M = 1.989e+33   # 1 solar mass
+cs = 0.2*1e5    # sound speed in Shu (1977)
+time = [1e12, 2e12, 4e12, 8e12] # time in Shu (1977)
+color = ['blue', 'orange', 'green', 'red']
 
 class penston():
     def __init__(self):
@@ -225,7 +229,6 @@ class ulrich():
                 radius = [i*cs*time[t] for i in self.x]         # /AU ?
                 for r in radius:
                     theta_0 = np.arccos(np.roots([50*AU/r, 0, 1-(50*AU/r), -np.cos(theta)])[2])
-                    print(np.roots([50*AU/r, 0, 1-(50*AU/r), -np.cos(theta)]))
                     # dm for ulrich
                     if shu:
                         dm = 2e-6*self.m/3.154e7
@@ -309,8 +312,14 @@ class terebey():
     #   a_shu_s1                : the Shu (1977) solution for density a0 (array)
     #   v_shu_s1                : the Shu (1977) solution for velocity v0 (array)
     #   store_dadz, store_dvdz  : dadz and dvdz from Shu (1977) calculation
-    def __init__(self, z_g1, z_s1, a_shu_s1, v_shu_s1, store_dadz, store_dvdz):
+    def __init__(self, z_g1, z_s1, a_shu_s1, a_shu_g1, v_shu_s1, store_dadz, store_dvdz, cs=0.2*1e5, time=[1e12, 2e12, 4e12, 8e12]):
         # quadrupolar EOM for x>1 
+        self.z_g1 = z_g1
+        self.z_s1 = z_s1
+        self.a_shu_s1 = a_shu_s1
+        self.a_shu_g1 = a_shu_g1
+        self.cs = cs
+        self.time = time
         def quadrupolar_greater1_ode(param, z):
             a = param[0]
             v = param[1]
@@ -460,6 +469,20 @@ class terebey():
         self.a_mono_s1 = [i for i in sol_mono_s1[:, 0]]
         self.v_mono_s1 = [i for i in sol_mono_s1[:, 1]]
 
+    def get_r_g1(self):
+        r = []
+        for t in self.time:
+            r.append([1/i*self.cs*t for i in self.z_g1])
+        
+        return r
+
+    def get_r_s1(self):
+        r = []
+        for t in self.time:
+            r.append([1/i*self.cs*t for i in self.z_s1])
+        
+        return r
+
     ##### Density #####
     def get_quad_a_g1(self):
         return self.a_g
@@ -491,6 +514,46 @@ class terebey():
     
     def get_mono_v_s1(self):
         return self.v_mono_s1
+    
+    def get_density_g1(self, theta, tau=1e-3):
+        # for omega=1e-14, tau^2=1e-3
+        a_2 = []
+        leg = legendre(2)
+
+        for i in range(len(self.a_g)):
+            a_2_i = self.a_mono_g[i] + self.a_g[i]*leg(np.cos(theta))
+            a_2.append(a_2_i)
+        
+        rho = []
+        for i in range(len(a_2)):
+            rho_i = self.a_shu_g1[i] + tau*a_2[i]
+            rho.append(rho_i)
+
+        density = []
+        for t in self.time:
+            density.append([(i/(4*np.pi*G*t**2)) for i in rho])
+
+        return density
+    
+    def get_density_s1(self, theta, tau=1e-3):
+        # for omega=1e-14, tau=1e-3
+        a_2 = []
+        leg = legendre(2)
+
+        for i in range(len(self.a_s)):
+            a_2_i = self.a_mono_s1[i] + self.a_s[i]*leg(np.cos(theta))
+            a_2.append(a_2_i)
+        
+        rho = []
+        for i in range(len(a_2)):
+            rho_i = self.a_shu_s1[i] + tau*a_2[i]
+            rho.append(rho_i)
+
+        density = []
+        for t in self.time:
+            density.append([(i/(4*np.pi*G*t**2)) for i in rho])
+
+        return density
 
 class lodato():
     # surface density of Lodato (2007)
@@ -526,9 +589,6 @@ sample_range = 4        # in interval [1e(-sample_range), 1e(sample_range)]
 z_g1 = [2/(i+1) for i in np.logspace(sample_range, 0, sample_pts)]  # also x_s1
 z_s1 = np.logspace(0, sample_range, sample_pts)                     # also x_g1
 
-cs = 0.2*1e5
-time = [1e12, 2e12, 4e12, 8e12]
-
 ########### Shu 1977 ##########
 s = shu(z_g1=z_g1, z_s1=z_s1, cs=cs, time=time)
 a_shu_s1 = s.get_a_s1()
@@ -546,28 +606,31 @@ dvdz = s.get_dvdz()
 # plt.plot([1/i for i in s.get_z_s1()], [-i for i in s.get_v_s1()])
 
 
-# color = ['blue', 'orange', 'green', 'red']
-# # r [cm], a [g/cm^-3] and v [cm/s]
-# for i in range(len(s.get_r_g1())):
-#     # density
-#     plt.plot([j/AU for j in s.get_r_g1()[i]], s.get_rho_g1()[i], color=color[i], label=f't={time[i]/1e12}e12')
-#     plt.plot([j/AU for j in s.get_r_s1()[i]], s.get_rho_s1()[i], color=color[i])
+color = ['blue', 'orange', 'green', 'red']
+# r [cm], a [g/cm^-3] and v [cm/s]
+for i in range(len(s.get_r_g1())):
+    # density
+    plt.plot([j/AU for j in s.get_r_g1()[i]], s.get_rho_g1()[i], color=color[i], label=f't={time[i]/1e12}e12')
+    plt.plot([j/AU for j in s.get_r_s1()[i]], s.get_rho_s1()[i], color=color[i])
 
-#     # velocity
-#     # plt.plot(s.get_r_g1()[i], s.get_u_g1()[i])
-#     # plt.plot(s.get_r_s1()[i], s.get_u_s1()[i], label=f't={time[i]/1e12}e12')
+    # velocity
+    # plt.plot(s.get_r_g1()[i], s.get_u_g1()[i])
+    # plt.plot(s.get_r_s1()[i], s.get_u_s1()[i], label=f't={time[i]/1e12}e12')
 
 ########### Ulrich 1976 ##########
-# r = np.logspace(0, 2*sample_range, sample_pts)
-# #u_s1 = ulrich(x=z_g1, cs=cs, time=time, shu=True)
-# u_g1 = ulrich(x=z_s1, cs=cs, time=time, shu=True)
+u_s1 = ulrich(x=z_g1, cs=cs, time=time, shu=True)
+u_g1 = ulrich(x=z_s1, cs=cs, time=time, shu=True)
 
-# for i in range(len(time)):
-#     #plt.plot(u_s1.get_r()[i], u_s1.get_a()[i][1], color='blue')
-#     plt.plot(u_g1.get_r()[i], u_g1.get_a()[i][1], color='blue')
+# density
+plt.plot(u_s1.get_r()[i], u_s1.get_a()[i][1], color='purple')
+plt.plot(u_g1.get_r()[i], u_g1.get_a()[i][1], color='purple')
+
+# velocity
+# plt.plot(u_s1.get_r()[i], u_s1.get_v_r()[i][1], color='purple')
+# plt.plot(u_g1.get_r()[i], u_g1.get_v_r()[i][1], color='purple')
 
 ########### Terebey 1984 ##########
-t = terebey(z_g1=z_g1, z_s1=z_s1, a_shu_s1=a_shu_s1, v_shu_s1=v_shu_s1, store_dadz=dadz, store_dvdz=dvdz)
+t = terebey(z_g1=z_g1, z_s1=z_s1, a_shu_s1=a_shu_s1, a_shu_g1=a_shu_g1, v_shu_s1=v_shu_s1, store_dadz=dadz, store_dvdz=dvdz)
 tsc_quad_a_s1 = t.get_quad_a_s1()
 tsc_quad_a_g1 = t.get_quad_a_g1()
 tsc_mono_a_s1 = t.get_mono_a_s1()
@@ -580,7 +643,16 @@ tsc_quad_w_g1 = t.get_quad_w_g1()
 
 tsc_mono_v_s1 = t.get_mono_v_s1()
 
-graph_type = 3
+tsc_density_g1 = t.get_density_g1(theta=np.pi/4)
+tsc_density_s1 = t.get_density_s1(theta=np.pi/4)
+
+count = 0
+for i in range(len(t.get_r_g1())):
+    plt.plot([j/AU for j in t.get_r_g1()[i]], tsc_density_g1[i], color=color[i], label=f't={time[i]/1e12}e12')
+    plt.plot([j/AU for j in t.get_r_s1()[i]], tsc_density_s1[i], color=color[i])
+
+# graph in the paper
+graph_type = 0
 if graph_type == 1:
     # Shu
     plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu', linewidth=2)
@@ -598,13 +670,10 @@ if graph_type == 2:
     
     plt.plot([1/i for i in z_g1], [i for i in tsc_quad_w_g1], label=r"$-w_Q$", color='green', linewidth=2)
     plt.plot([1/i for i in z_s1], [-i for i in tsc_quad_w_s1], color='green', linewidth=2)
- 
 
 if graph_type == 3:
     plt.plot([1/i for i in z_s1], [-i for i in v_shu_s1], color='orange', label='-v shu', linewidth=2)
     plt.plot([1/i for i in z_s1], [i for i in tsc_mono_v_s1], label = r"$v_m$", linewidth=2)
-
-
 
 ########### Lodato 2007 ##########
 # l_s1 = lodato(x=z_g1, time=time)

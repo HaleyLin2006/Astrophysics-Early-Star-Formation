@@ -305,7 +305,6 @@ class ulrich():
     def get_v_phi(self):
         return self.velo_phi
 
-# calculate overall a, V, W
 class terebey():
     # EOM for Terebey, Shu, Cassen (1984)
     #   z_g1, z_s1              : the radius coordinate to calculate upon, in z=1/x
@@ -618,12 +617,12 @@ for i in range(len(s.get_r_g1())):
     # plt.plot(s.get_r_s1()[i], s.get_u_s1()[i], label=f't={time[i]/1e12}e12')
 
 ########### Ulrich 1976 ##########
-u_s1 = ulrich(x=z_g1, cs=cs, time=time, shu=True)
-u_g1 = ulrich(x=z_s1, cs=cs, time=time, shu=True)
+# u_s1 = ulrich(x=z_g1, cs=cs, time=time, shu=True)
+# u_g1 = ulrich(x=z_s1, cs=cs, time=time, shu=True)
 
-# density
-plt.plot(u_s1.get_r()[i], u_s1.get_a()[i][1], color='purple')
-plt.plot(u_g1.get_r()[i], u_g1.get_a()[i][1], color='purple')
+# # density
+# plt.plot(u_s1.get_r()[i], u_s1.get_a()[i][1], color='purple')
+# plt.plot(u_g1.get_r()[i], u_g1.get_a()[i][1], color='purple')
 
 # velocity
 # plt.plot(u_s1.get_r()[i], u_s1.get_v_r()[i][1], color='purple')

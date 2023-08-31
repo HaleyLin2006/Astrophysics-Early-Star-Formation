@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from scipy.integrate import odeint, ode
 from scipy.special import legendre
-from scipy import interpolate
+from scipy.interpolate import griddata
 import numpy as np
 
 #universal constant in cgs
@@ -615,36 +615,33 @@ dvdz = s.get_dvdz()
 
 color = ['blue', 'orange', 'green', 'red', 'purple', 'cyan', 'grey']
 # r [cm], a [g/cm^-3] and v [cm/s]
-for i in range(len(s.get_r_g1())):
-    i = 0
+# for i in range(len(s.get_r_g1())):
+#     i = 0
     # density
     # plt.plot([j/AU for j in s.get_r_g1()[i]] + [j/AU for j in s.get_r_s1()[i]], s.get_rho_g1()[i]+ s.get_rho_s1()[i], color=color[i], label=f't={time[i]/1e12}e12')
-    #plt.plot([j/AU for j in s.get_r_s1()[i]], s.get_rho_s1()[i], color=color[i])
+    # plt.plot([j/AU for j in s.get_r_s1()[i]], s.get_rho_s1()[i], color=color[i])
 
     # velocity
     # plt.plot(s.get_r_g1()[i], s.get_u_g1()[i])
     # plt.plot(s.get_r_s1()[i], s.get_u_s1()[i], label=f't={time[i]/1e12}e12')
 
 ##### Shu (1977) 2D Graph #####
-# Replace this with your actual 1-D data
 fig, axes = plt.subplots(2, 4)
 axes_flat = axes.flatten()
 
 common_vmin = min(np.min(image) for image in s.get_rho_g1())
 common_vmax = max(np.max(image) for image in s.get_rho_s1())
 
-fig, axes = plt.subplots(2, 4)
-axes_flat = axes.flatten()
-
 for i, ax in enumerate(axes_flat):
     if i < len(time):
-        radii = np.linspace(0, 2000, 2000)  # Distances from the origin
+        print(f"progress: {i}/{len(time)}, currently at {time[i]/t_acc} t_acc")
+        radii = np.linspace(0, 2*sample_pts, 2*sample_pts)  # Distances from the origin
         molecule_counts = s.get_rho_s1()[i][::-1] + s.get_rho_g1()[i][::-1]
 
         # Create a grid
         grid_size = sample_pts  # Adjust as needed
-        x = np.linspace(0, 2000, 2000)
-        y = np.linspace(0, 2000, 2000)
+        x = np.linspace(0, 2*sample_pts, 2*sample_pts)
+        y = np.linspace(0, 2*sample_pts, 2*sample_pts)
         xx, yy = np.meshgrid(x, y)
         r = np.sqrt(xx**2 + yy**2)
 
@@ -656,20 +653,20 @@ for i, ax in enumerate(axes_flat):
         norm = LogNorm(vmin=common_vmin, vmax=common_vmax)
 
         # Plot the radially symmetrical image
-        im = ax.imshow(interpolated_data, cmap='viridis', origin='lower', extent=[0, 2000, 0, 2000], norm=norm)
-
-        ax.set_title(f't = {time[i]/t_acc}')
+        im = ax.imshow(interpolated_data, cmap='viridis', origin='lower', extent=[0, 2*sample_pts, 0, 2*sample_pts], norm=norm)
 
         # Add contour line at the value 10^(-18)
         contour_value = 1e-18
         ax.contour(xx, yy, interpolated_data, levels=[contour_value], colors='red', linewidths=2)
 
+        ax.set_title(f't = {time[i]/t_acc}')
+
     else:
-        ax.axis('off')
+        plt.axis("off")
         cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
-        cbar.set_label('Intensity')
+        cbar.set_label('Density')
 
-
+fig.suptitle('Shu (1977) 2D Graph')
 
 ########### Ulrich 1976 ##########
 # u_s1 = ulrich(x=z_g1, cs=cs, time=time, shu=True)
@@ -684,7 +681,7 @@ for i, ax in enumerate(axes_flat):
 # plt.plot(u_g1.get_r()[i], u_g1.get_v_r()[i][1], color='purple')
 
 ########### Terebey 1984 ##########
-# t = terebey(z_g1=z_g1, z_s1=z_s1, a_shu_s1=a_shu_s1, a_shu_g1=a_shu_g1, v_shu_s1=v_shu_s1, store_dadz=dadz, store_dvdz=dvdz, cs=cs, time=time)
+t = terebey(z_g1=z_g1, z_s1=z_s1, a_shu_s1=a_shu_s1, a_shu_g1=a_shu_g1, v_shu_s1=v_shu_s1, store_dadz=dadz, store_dvdz=dvdz, cs=cs, time=time)
 # tsc_quad_a_s1 = t.get_quad_a_s1()
 # tsc_quad_a_g1 = t.get_quad_a_g1()
 # tsc_mono_a_s1 = t.get_mono_a_s1()
@@ -700,10 +697,10 @@ for i, ax in enumerate(axes_flat):
 # tsc_density_g1 = t.get_density_g1(theta=np.pi/4)
 # tsc_density_s1 = t.get_density_s1(theta=np.pi/4)
 
-# # graph with dimension
+# graph with dimension
 # count = 0
 # for i in range(len(t.get_r_g1())):
-#     plt.plot([j/AU for j in t.get_r_g1()[i]], tsc_density_g1[i], color=color[i], label=f't={time[i]/1e12}e12')
+#     plt.plot([j/AU for j in t.get_r_g1()[i]] + [j/AU for j in t.get_r_s1()[i]], tsc_density_g1[i] + tsc_density_s1[i], color=color[i], label=f't={time[i]/1e12}e12')
 #     plt.plot([j/AU for j in t.get_r_s1()[i]], tsc_density_s1[i], color=color[i])
 
 # graph in the paper
@@ -730,6 +727,63 @@ for i, ax in enumerate(axes_flat):
 #     plt.plot([1/i for i in z_s1], [-i for i in v_shu_s1], color='orange', label='-v shu', linewidth=2)
 #     plt.plot([1/i for i in z_s1], [i for i in tsc_mono_v_s1], label = r"$v_m$", linewidth=2)
 
+##### TSC (1984) 2D Graph #####
+# fig, axes = plt.subplots(2, 4)
+# axes_flat = axes.flatten()
+
+# theta_values = np.linspace(0, 2 * np.pi, 100)
+
+# i = 0
+# for i, ax in enumerate(axes_flat):
+#     if i < len(time):
+#         print(f"progress: {i}/{len(time)}, currently at {time[i]/t_acc} t_acc")
+#         value_map = []
+#         for theta in range(len(theta_values)):
+#             tsc_density_g1 = t.get_density_g1(theta=theta)
+#             tsc_density_s1 = t.get_density_s1(theta=theta)
+#             value_map.append(tsc_density_s1[i][::-1] + tsc_density_g1[i][::-1])
+
+#         # Example data in (r, theta) format
+#         r_values = np.linspace(0, 2*sample_pts, 2*sample_pts)
+#         data_values = value_map # List of lists, each sublist represents data at a theta value
+
+#         # Convert (r, theta) to (x, y) coordinates
+#         x_values = []
+#         y_values = []
+#         for j, theta in enumerate(theta_values):
+#             x_values.extend(r_values * np.cos(theta))
+#             y_values.extend(r_values * np.sin(theta))
+
+#         # Create a flattened (x, y) array and corresponding flattened data array
+#         x_flat = np.array(x_values)
+#         y_flat = np.array(y_values)
+#         data_flat = np.array(data_values).flatten()
+
+#         # Create a grid in (x, y) coordinates
+#         x_grid = np.linspace(0, max(x_flat), 2*sample_pts)
+#         y_grid = np.linspace(0, max(y_flat), 2*sample_pts)
+#         xx, yy = np.meshgrid(x_grid, y_grid)
+
+#         # Interpolate data onto the (x, y) grid
+#         data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
+
+#         # Plot the interpolated data using imshow()
+#         norm = LogNorm(vmin=np.min(value_map), vmax=10**(-14))
+#         im = ax.imshow(data_interp, extent=[0, max(x_flat), 0, max(y_flat)],
+#                 cmap='viridis', origin='lower', aspect='auto', norm=norm)
+        
+#         contour_value = 1e-18
+#         ax.contour(xx, yy, data_interp, levels=[contour_value], colors='red', linewidths=2)
+
+#         ax.set_title(f't = {time[i]/t_acc}')
+
+#     else:
+#         plt.axis('off')
+#         cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
+#         cbar.set_label('Density')
+
+# fig.suptitle('TSC (1984) 2D Graph')
+
 ########### Lodato 2007 ##########
 # l_s1 = lodato(x=z_g1, time=time)
 # l_g1 = lodato(x=z_s1, time=time)
@@ -740,7 +794,6 @@ for i, ax in enumerate(axes_flat):
 #     plt.plot([x*cs*time[i]/AU for x in z_g1], l_s1_sigma[i], label=f't={time[i]}', color='red')
 # for j in range(len(l_g1_sigma)):
 #      plt.plot([x*cs*time[j]/AU for x in z_s1], l_g1_sigma[j], label=f't={time[j]}', color='red')
-
 
 # plt.xscale('log')
 # plt.yscale('log')

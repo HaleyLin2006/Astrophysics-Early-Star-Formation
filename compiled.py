@@ -1,14 +1,16 @@
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 from scipy.integrate import odeint, ode
 from scipy.special import legendre
+from scipy import interpolate
 import numpy as np
 
 #universal constant in cgs
 AU = 1.496e+13
 G = 6.67e-8
 M = 1.989e+33   # 1 solar mass
-cs = 0.2*1e5    # sound speed in Shu (1977)
-time = [1e12, 2e12, 4e12, 8e12] # time in Shu (1977)
+cs = 0.2*1e5    # sound speed in Shu (1977) [cm/s]
+time = [1e12, 2e12, 4e12, 8e12] # time in Shu (1977) [s]
 color = ['blue', 'orange', 'green', 'red']
 
 class penston():
@@ -311,6 +313,8 @@ class terebey():
     #   a_shu_s1                : the Shu (1977) solution for density a0 (array)
     #   v_shu_s1                : the Shu (1977) solution for velocity v0 (array)
     #   store_dadz, store_dvdz  : dadz and dvdz from Shu (1977) calculation
+    #   cs ([cm/s]) : sound speed given by S77 to bring dimensionless solution back with dimension
+    #   time ([s])  : time is provided to bring dimensionless solution back with dimension
     def __init__(self, z_g1, z_s1, a_shu_s1, a_shu_g1, v_shu_s1, store_dadz, store_dvdz, cs=0.2*1e5, time=[1e12, 2e12, 4e12, 8e12]):
         # quadrupolar EOM for x>1 
         self.z_g1 = z_g1
@@ -589,6 +593,10 @@ z_g1 = [2/(i+1) for i in np.logspace(sample_range, 0, sample_pts)]  # also x_s1
 z_s1 = np.logspace(0, sample_range, sample_pts)                     # also x_g1
 
 ########### Shu 1977 ##########
+cs = 0.26*1e5    # sound speed in Visser (2009) [cm/s]
+t_acc = 2.5*1e5 * 31556926 # t_acc in Visser (2009) [s]
+time = [0.05*t_acc, 0.1*t_acc, 0.2*t_acc, 0.3*t_acc, 0.5*t_acc, 0.7*t_acc, t_acc] # time in Visser (2009) [s]
+
 s = shu(z_g1=z_g1, z_s1=z_s1, cs=cs, time=time)
 a_shu_s1 = s.get_a_s1()
 v_shu_s1 = s.get_v_s1()
@@ -605,16 +613,63 @@ dvdz = s.get_dvdz()
 # plt.plot([1/i for i in s.get_z_s1()], [-i for i in s.get_v_s1()])
 
 
-color = ['blue', 'orange', 'green', 'red']
+color = ['blue', 'orange', 'green', 'red', 'purple', 'cyan', 'grey']
 # r [cm], a [g/cm^-3] and v [cm/s]
 for i in range(len(s.get_r_g1())):
+    i = 0
     # density
-    plt.plot([j/AU for j in s.get_r_g1()[i]], s.get_rho_g1()[i], color=color[i], label=f't={time[i]/1e12}e12')
-    plt.plot([j/AU for j in s.get_r_s1()[i]], s.get_rho_s1()[i], color=color[i])
+    # plt.plot([j/AU for j in s.get_r_g1()[i]] + [j/AU for j in s.get_r_s1()[i]], s.get_rho_g1()[i]+ s.get_rho_s1()[i], color=color[i], label=f't={time[i]/1e12}e12')
+    #plt.plot([j/AU for j in s.get_r_s1()[i]], s.get_rho_s1()[i], color=color[i])
 
     # velocity
     # plt.plot(s.get_r_g1()[i], s.get_u_g1()[i])
     # plt.plot(s.get_r_s1()[i], s.get_u_s1()[i], label=f't={time[i]/1e12}e12')
+
+##### Shu (1977) 2D Graph #####
+# Replace this with your actual 1-D data
+fig, axes = plt.subplots(2, 4)
+axes_flat = axes.flatten()
+
+common_vmin = min(np.min(image) for image in s.get_rho_g1())
+common_vmax = max(np.max(image) for image in s.get_rho_s1())
+
+fig, axes = plt.subplots(2, 4)
+axes_flat = axes.flatten()
+
+for i, ax in enumerate(axes_flat):
+    if i < len(time):
+        radii = np.linspace(0, 2000, 2000)  # Distances from the origin
+        molecule_counts = s.get_rho_s1()[i][::-1] + s.get_rho_g1()[i][::-1]
+
+        # Create a grid
+        grid_size = sample_pts  # Adjust as needed
+        x = np.linspace(0, 2000, 2000)
+        y = np.linspace(0, 2000, 2000)
+        xx, yy = np.meshgrid(x, y)
+        r = np.sqrt(xx**2 + yy**2)
+
+        # Interpolate data onto the grid
+        interpolated_data = np.interp(r.ravel(), radii, molecule_counts, left=0, right=0)
+        interpolated_data = interpolated_data.reshape(xx.shape)
+
+        # Logarithmic colormap
+        norm = LogNorm(vmin=common_vmin, vmax=common_vmax)
+
+        # Plot the radially symmetrical image
+        im = ax.imshow(interpolated_data, cmap='viridis', origin='lower', extent=[0, 2000, 0, 2000], norm=norm)
+
+        ax.set_title(f't = {time[i]/t_acc}')
+
+        # Add contour line at the value 10^(-18)
+        contour_value = 1e-18
+        ax.contour(xx, yy, interpolated_data, levels=[contour_value], colors='red', linewidths=2)
+
+    else:
+        ax.axis('off')
+        cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
+        cbar.set_label('Intensity')
+
+
 
 ########### Ulrich 1976 ##########
 # u_s1 = ulrich(x=z_g1, cs=cs, time=time, shu=True)
@@ -629,50 +684,51 @@ for i in range(len(s.get_r_g1())):
 # plt.plot(u_g1.get_r()[i], u_g1.get_v_r()[i][1], color='purple')
 
 ########### Terebey 1984 ##########
-t = terebey(z_g1=z_g1, z_s1=z_s1, a_shu_s1=a_shu_s1, a_shu_g1=a_shu_g1, v_shu_s1=v_shu_s1, store_dadz=dadz, store_dvdz=dvdz)
-tsc_quad_a_s1 = t.get_quad_a_s1()
-tsc_quad_a_g1 = t.get_quad_a_g1()
-tsc_mono_a_s1 = t.get_mono_a_s1()
-tsc_mono_a_g1 = t.get_mono_a_g1()
+# t = terebey(z_g1=z_g1, z_s1=z_s1, a_shu_s1=a_shu_s1, a_shu_g1=a_shu_g1, v_shu_s1=v_shu_s1, store_dadz=dadz, store_dvdz=dvdz, cs=cs, time=time)
+# tsc_quad_a_s1 = t.get_quad_a_s1()
+# tsc_quad_a_g1 = t.get_quad_a_g1()
+# tsc_mono_a_s1 = t.get_mono_a_s1()
+# tsc_mono_a_g1 = t.get_mono_a_g1()
 
-tsc_quad_v_s1 = t.get_quad_v_s1()
-tsc_quad_v_g1 = t.get_quad_v_g1()
-tsc_quad_w_s1 = t.get_quad_w_s1()
-tsc_quad_w_g1 = t.get_quad_w_g1()
+# tsc_quad_v_s1 = t.get_quad_v_s1()
+# tsc_quad_v_g1 = t.get_quad_v_g1()
+# tsc_quad_w_s1 = t.get_quad_w_s1()
+# tsc_quad_w_g1 = t.get_quad_w_g1()
 
-tsc_mono_v_s1 = t.get_mono_v_s1()
+# tsc_mono_v_s1 = t.get_mono_v_s1()
 
-tsc_density_g1 = t.get_density_g1(theta=np.pi/4)
-tsc_density_s1 = t.get_density_s1(theta=np.pi/4)
+# tsc_density_g1 = t.get_density_g1(theta=np.pi/4)
+# tsc_density_s1 = t.get_density_s1(theta=np.pi/4)
 
-count = 0
-for i in range(len(t.get_r_g1())):
-    plt.plot([j/AU for j in t.get_r_g1()[i]], tsc_density_g1[i], color=color[i], label=f't={time[i]/1e12}e12')
-    plt.plot([j/AU for j in t.get_r_s1()[i]], tsc_density_s1[i], color=color[i])
+# # graph with dimension
+# count = 0
+# for i in range(len(t.get_r_g1())):
+#     plt.plot([j/AU for j in t.get_r_g1()[i]], tsc_density_g1[i], color=color[i], label=f't={time[i]/1e12}e12')
+#     plt.plot([j/AU for j in t.get_r_s1()[i]], tsc_density_s1[i], color=color[i])
 
 # graph in the paper
-graph_type = 0
-if graph_type == 1:
-    # Shu
-    plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu', linewidth=2)
-    plt.plot([1/i for i in z_s1], [i for i in a_shu_s1], color='orange', linewidth=2)
-    # quadrupolar
-    plt.plot([1/i for i in z_g1], [i for i in tsc_quad_a_g1], label=r"$-\alpha_Q$", color='red', linewidth=2)
-    plt.plot([1/i for i in z_s1], [abs(i) for i in tsc_quad_a_s1], color='red', linewidth=2)                 
-    # monopolar
-    plt.plot([1/i for i in z_g1], [i for i in tsc_mono_a_g1], label=r"$a_m$", color='blue', linewidth=2)
-    plt.plot([1/i for i in z_s1], [i for i in tsc_mono_a_s1], color='blue', linewidth=2)
+# graph_type = 0
+# if graph_type == 1:
+#     # Shu
+#     plt.plot([1/i for i in z_g1], [i for i in a_shu_g1], color='orange', label='a shu', linewidth=2)
+#     plt.plot([1/i for i in z_s1], [i for i in a_shu_s1], color='orange', linewidth=2)
+#     # quadrupolar
+#     plt.plot([1/i for i in z_g1], [i for i in tsc_quad_a_g1], label=r"$-\alpha_Q$", color='red', linewidth=2)
+#     plt.plot([1/i for i in z_s1], [abs(i) for i in tsc_quad_a_s1], color='red', linewidth=2)                 
+#     # monopolar
+#     plt.plot([1/i for i in z_g1], [i for i in tsc_mono_a_g1], label=r"$a_m$", color='blue', linewidth=2)
+#     plt.plot([1/i for i in z_s1], [i for i in tsc_mono_a_s1], color='blue', linewidth=2)
 
-if graph_type == 2:
-    plt.plot([1/i for i in z_g1], [i for i in tsc_quad_v_g1], label=r"$v_Q$", color= 'blue', linewidth=2)
-    plt.plot([1/i for i in z_s1], [i for i in tsc_quad_v_s1], color='blue', linewidth=2)       
+# if graph_type == 2:
+#     plt.plot([1/i for i in z_g1], [i for i in tsc_quad_v_g1], label=r"$v_Q$", color= 'blue', linewidth=2)
+#     plt.plot([1/i for i in z_s1], [i for i in tsc_quad_v_s1], color='blue', linewidth=2)       
     
-    plt.plot([1/i for i in z_g1], [i for i in tsc_quad_w_g1], label=r"$-w_Q$", color='green', linewidth=2)
-    plt.plot([1/i for i in z_s1], [-i for i in tsc_quad_w_s1], color='green', linewidth=2)
+#     plt.plot([1/i for i in z_g1], [i for i in tsc_quad_w_g1], label=r"$-w_Q$", color='green', linewidth=2)
+#     plt.plot([1/i for i in z_s1], [-i for i in tsc_quad_w_s1], color='green', linewidth=2)
 
-if graph_type == 3:
-    plt.plot([1/i for i in z_s1], [-i for i in v_shu_s1], color='orange', label='-v shu', linewidth=2)
-    plt.plot([1/i for i in z_s1], [i for i in tsc_mono_v_s1], label = r"$v_m$", linewidth=2)
+# if graph_type == 3:
+#     plt.plot([1/i for i in z_s1], [-i for i in v_shu_s1], color='orange', label='-v shu', linewidth=2)
+#     plt.plot([1/i for i in z_s1], [i for i in tsc_mono_v_s1], label = r"$v_m$", linewidth=2)
 
 ########### Lodato 2007 ##########
 # l_s1 = lodato(x=z_g1, time=time)
@@ -685,6 +741,7 @@ if graph_type == 3:
 # for j in range(len(l_g1_sigma)):
 #      plt.plot([x*cs*time[j]/AU for x in z_s1], l_g1_sigma[j], label=f't={time[j]}', color='red')
 
-plt.xscale('log')
-plt.yscale('log')
+
+# plt.xscale('log')
+# plt.yscale('log')
 plt.show()

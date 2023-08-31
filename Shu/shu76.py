@@ -34,7 +34,7 @@ AU = 1.496e+13                      # physical constant, Astronomical unit in (c
 cs = 0.2*1e5                        # condition given by paper (cm/s)
 time = [1e12, 2e12, 4e12, 8e12]     # time tested given by the paper (s)
 
-'''
+
 # change the unit from dimensionless solution (a, v) back to normal variable
 for t in time:
     r = [i*cs*t/fine for i in x]
@@ -43,11 +43,11 @@ for t in time:
 
     #plt.plot(r, u, label=f'u, t={t/1e12} e12')
     plt.plot(r, rho, label=f'rho, t={t/1e12}e12')
-'''
+
 
 # apply if want to graph dimensionless (a, v)
-plt.plot([i/fine for i in x], a, color='red', label='a')
-plt.plot([i/fine for i in x], v, color='blue', label='v')
+# plt.plot([i/fine for i in x], a, color='red', label='a')
+# plt.plot([i/fine for i in x], v, color='blue', label='v')
 #'''
 
 #print(a)

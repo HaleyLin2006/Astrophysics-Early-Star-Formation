@@ -626,47 +626,47 @@ color = ['blue', 'orange', 'green', 'red', 'purple', 'cyan', 'grey']
     # plt.plot(s.get_r_s1()[i], s.get_u_s1()[i], label=f't={time[i]/1e12}e12')
 
 ##### Shu (1977) 2D Graph #####
-fig, axes = plt.subplots(2, 4)
-axes_flat = axes.flatten()
+# fig, axes = plt.subplots(2, 4)
+# axes_flat = axes.flatten()
 
-common_vmin = min(np.min(image) for image in s.get_rho_g1())
-common_vmax = max(np.max(image) for image in s.get_rho_s1())
+# common_vmin = min(np.min(image) for image in s.get_rho_g1())
+# common_vmax = max(np.max(image) for image in s.get_rho_s1())
 
-for i, ax in enumerate(axes_flat):
-    if i < len(time):
-        print(f"progress: {i}/{len(time)}, currently at {time[i]/t_acc} t_acc")
-        radii = np.linspace(0, 2*sample_pts, 2*sample_pts)  # Distances from the origin
-        molecule_counts = s.get_rho_s1()[i][::-1] + s.get_rho_g1()[i][::-1]
+# for i, ax in enumerate(axes_flat):
+#     if i < len(time):
+#         print(f"progress: {i}/{len(time)}, currently at {time[i]/t_acc} t_acc")
+#         radii = np.linspace(0, 2*sample_pts, 2*sample_pts)  # Distances from the origin
+#         molecule_counts = s.get_rho_s1()[i][::-1] + s.get_rho_g1()[i][::-1]
 
-        # Create a grid
-        grid_size = sample_pts  # Adjust as needed
-        x = np.linspace(0, 2*sample_pts, 2*sample_pts)
-        y = np.linspace(0, 2*sample_pts, 2*sample_pts)
-        xx, yy = np.meshgrid(x, y)
-        r = np.sqrt(xx**2 + yy**2)
+#         # Create a grid
+#         grid_size = sample_pts  # Adjust as needed
+#         x = np.linspace(0, 2*sample_pts, 2*sample_pts)
+#         y = np.linspace(0, 2*sample_pts, 2*sample_pts)
+#         xx, yy = np.meshgrid(x, y)
+#         r = np.sqrt(xx**2 + yy**2)
 
-        # Interpolate data onto the grid
-        interpolated_data = np.interp(r.ravel(), radii, molecule_counts, left=0, right=0)
-        interpolated_data = interpolated_data.reshape(xx.shape)
+#         # Interpolate data onto the grid
+#         interpolated_data = np.interp(r.ravel(), radii, molecule_counts, left=0, right=0)
+#         interpolated_data = interpolated_data.reshape(xx.shape)
 
-        # Logarithmic colormap
-        norm = LogNorm(vmin=common_vmin, vmax=common_vmax)
+#         # Logarithmic colormap
+#         norm = LogNorm(vmin=10**(-22), vmax=10**(-14))
 
-        # Plot the radially symmetrical image
-        im = ax.imshow(interpolated_data, cmap='viridis', origin='lower', extent=[0, 2*sample_pts, 0, 2*sample_pts], norm=norm)
+#         # Plot the radially symmetrical image
+#         im = ax.imshow(interpolated_data, cmap='viridis', origin='lower', extent=[0, 2*sample_pts, 0, 2*sample_pts], norm=norm)
 
-        # Add contour line at the value 10^(-18)
-        contour_value = 1e-18
-        ax.contour(xx, yy, interpolated_data, levels=[contour_value], colors='red', linewidths=2)
+#         # Add contour line at the value 10^(-18)
+#         contour_value = 1e-18
+#         ax.contour(xx, yy, interpolated_data, levels=[contour_value], colors='red', linewidths=2)
 
-        ax.set_title(f't = {time[i]/t_acc}')
+#         ax.set_title(f't = {time[i]/t_acc}')
 
-    else:
-        plt.axis("off")
-        cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
-        cbar.set_label('Density')
+#     else:
+#         plt.axis("off")
+#         cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
+#         cbar.set_label('Density')
 
-fig.suptitle('Shu (1977) 2D Graph')
+# fig.suptitle('Shu (1977) 2D Graph')
 
 ########### Ulrich 1976 ##########
 # u_s1 = ulrich(x=z_g1, cs=cs, time=time, shu=True)
@@ -728,61 +728,61 @@ t = terebey(z_g1=z_g1, z_s1=z_s1, a_shu_s1=a_shu_s1, a_shu_g1=a_shu_g1, v_shu_s1
 #     plt.plot([1/i for i in z_s1], [i for i in tsc_mono_v_s1], label = r"$v_m$", linewidth=2)
 
 ##### TSC (1984) 2D Graph #####
-# fig, axes = plt.subplots(2, 4)
-# axes_flat = axes.flatten()
+fig, axes = plt.subplots(2, 4)
+axes_flat = axes.flatten()
 
-# theta_values = np.linspace(0, 2 * np.pi, 100)
+theta_values = np.linspace(0, 2 * np.pi, 100)
 
-# i = 0
-# for i, ax in enumerate(axes_flat):
-#     if i < len(time):
-#         print(f"progress: {i}/{len(time)}, currently at {time[i]/t_acc} t_acc")
-#         value_map = []
-#         for theta in range(len(theta_values)):
-#             tsc_density_g1 = t.get_density_g1(theta=theta)
-#             tsc_density_s1 = t.get_density_s1(theta=theta)
-#             value_map.append(tsc_density_s1[i][::-1] + tsc_density_g1[i][::-1])
+i = 0
+for i, ax in enumerate(axes_flat):
+    if i < len(time):
+        print(f"progress: {i}/{len(time)}, currently at {time[i]/t_acc} t_acc")
+        value_map = []
+        for theta in range(len(theta_values)):
+            tsc_density_g1 = t.get_density_g1(theta=theta)
+            tsc_density_s1 = t.get_density_s1(theta=theta)
+            value_map.append(tsc_density_s1[i][::-1] + tsc_density_g1[i][::-1])
 
-#         # Example data in (r, theta) format
-#         r_values = np.linspace(0, 2*sample_pts, 2*sample_pts)
-#         data_values = value_map # List of lists, each sublist represents data at a theta value
+        # Example data in (r, theta) format
+        r_values = np.linspace(0, 2*sample_pts, 2*sample_pts)
+        data_values = value_map # List of lists, each sublist represents data at a theta value
 
-#         # Convert (r, theta) to (x, y) coordinates
-#         x_values = []
-#         y_values = []
-#         for j, theta in enumerate(theta_values):
-#             x_values.extend(r_values * np.cos(theta))
-#             y_values.extend(r_values * np.sin(theta))
+        # Convert (r, theta) to (x, y) coordinates
+        x_values = []
+        y_values = []
+        for j, theta in enumerate(theta_values):
+            x_values.extend(r_values * np.cos(theta))
+            y_values.extend(r_values * np.sin(theta))
 
-#         # Create a flattened (x, y) array and corresponding flattened data array
-#         x_flat = np.array(x_values)
-#         y_flat = np.array(y_values)
-#         data_flat = np.array(data_values).flatten()
+        # Create a flattened (x, y) array and corresponding flattened data array
+        x_flat = np.array(x_values)
+        y_flat = np.array(y_values)
+        data_flat = np.array(data_values).flatten()
 
-#         # Create a grid in (x, y) coordinates
-#         x_grid = np.linspace(0, max(x_flat), 2*sample_pts)
-#         y_grid = np.linspace(0, max(y_flat), 2*sample_pts)
-#         xx, yy = np.meshgrid(x_grid, y_grid)
+        # Create a grid in (x, y) coordinates
+        x_grid = np.linspace(0, max(x_flat), 2*sample_pts)
+        y_grid = np.linspace(0, max(y_flat), 2*sample_pts)
+        xx, yy = np.meshgrid(x_grid, y_grid)
 
-#         # Interpolate data onto the (x, y) grid
-#         data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
+        # Interpolate data onto the (x, y) grid
+        data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
 
-#         # Plot the interpolated data using imshow()
-#         norm = LogNorm(vmin=np.min(value_map), vmax=10**(-14))
-#         im = ax.imshow(data_interp, extent=[0, max(x_flat), 0, max(y_flat)],
-#                 cmap='viridis', origin='lower', aspect='auto', norm=norm)
+        # Plot the interpolated data using imshow()
+        norm = LogNorm(vmin=np.min(value_map), vmax=10**(-14))
+        im = ax.imshow(data_interp, extent=[0, max(x_flat), 0, max(y_flat)],
+                cmap='viridis', origin='lower', aspect='auto', norm=norm)
         
-#         contour_value = 1e-18
-#         ax.contour(xx, yy, data_interp, levels=[contour_value], colors='red', linewidths=2)
+        contour_value = 1e-18
+        ax.contour(xx, yy, data_interp, levels=[contour_value], colors='red', linewidths=2)
 
-#         ax.set_title(f't = {time[i]/t_acc}')
+        ax.set_title(f't = {time[i]/t_acc}')
 
-#     else:
-#         plt.axis('off')
-#         cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
-#         cbar.set_label('Density')
+    else:
+        plt.axis('off')
+        cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
+        cbar.set_label('Density')
 
-# fig.suptitle('TSC (1984) 2D Graph')
+fig.suptitle('TSC (1984) 2D Graph')
 
 ########### Lodato 2007 ##########
 # l_s1 = lodato(x=z_g1, time=time)

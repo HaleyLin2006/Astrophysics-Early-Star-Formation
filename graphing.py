@@ -176,12 +176,6 @@ class shu_graph():
                 ax.set_xlim(0, 1.5)
                 ax.set_ylim(0, 1.5)
 
-                # tick_selected = self._tick_help([j/param.AU for j in self.radius_s1[i]][::-1]+
-                #                                 [j/param.AU for j in self.radius_g1[i]][::-1], param.tick)
-                # print(f"case {i+1} with {tick_selected}, and outer edge {outer_edge}")
-                # ax.set_xticks(tick_selected, param.tick)
-                # ax.set_yticks(tick_selected, param.tick)
-
                 r_env_edge = patches.Circle((0,0), param.r_env/1e3, fill=False, edgecolor='black', linewidth=2)
                 ax.add_patch(r_env_edge)
 

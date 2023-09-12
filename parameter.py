@@ -16,6 +16,8 @@ class param():
         self.time           = [0.05*self.t_acc, 0.1*self.t_acc, 0.2*self.t_acc, 0.3*self.t_acc, 
                                0.5*self.t_acc, 0.7*self.t_acc, self.t_acc]                          # time in Visser (2009) [s]
         
+        # self.time           = [0.1*self.t_acc, 0.5*self.t_acc, self.t_acc]
+
         #   varaible for calculation
         self.sample_pts     = 1000
         self.sample_range   = 4

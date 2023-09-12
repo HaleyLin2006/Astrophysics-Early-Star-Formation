@@ -13,13 +13,15 @@ param = param()
 z_g1 = [2/(i+1) for i in np.logspace(param.sample_range, 0, param.sample_pts)]  # also x_s1
 z_s1 = np.logspace(0, param.sample_range, param.sample_pts)
 
-z_g = np.linspace(1/(10**param.sample_range), 1, param.sample_pts)
-z_s = np.linspace(1, 10**param.sample_range, param.sample_pts)
+# z_g = np.linspace(1/(10**param.sample_range), 1, param.sample_pts)
+# z_s = np.linspace(1, 10**param.sample_range, param.sample_pts)
 
 # TODO: save param and data (if same param -> don't save)
 # TODO: sphinx
 # TODO: format of Shu and TSC in graphing is different
 # TODO: flip r and density in Shu and TSC
+
+# edge (1.5AU) and radii (/1e3) and grid (to actual)
 
 # TODO: combine Shu and TSC
 # TODO: after combine Shu and TSC -> integrate them to check the total mass
@@ -64,11 +66,6 @@ class shu_graph():
         self.nh_density_g1  = self.shu.get_nh_rho_g1()
         self.nh_density_s1  = self.shu.get_nh_rho_s1()
 
-        self.tick_selected = []
-        for i in range(len(param.time)):
-            self.tick_selected.append(self._tick_help([j/param.AU for j in self.radius_s1[i]][::-1]+
-                                                      [j/param.AU for j in self.radius_g1[i]][::-1], param.tick))
-
     def dimensionless_a_v_1d(self):
         """
         Plot the dimensionless density and velocity profiles in 1D,
@@ -101,6 +98,8 @@ class shu_graph():
         """
         Plot density profiles in CGS units in 2D for different times using 
         a logarithmic colormap with contour value. Note that it shows the entire range we calculated
+
+        LOG SCALE!
         """
         fig, axes = plt.subplots(2, 4)
         axes_flat = axes.flatten()
@@ -154,14 +153,12 @@ class shu_graph():
         for i, ax in enumerate(axes_flat):
             if i < len(param.time):
                 print(f"progress: {i+1}/{len(param.time)}, currently at {param.time[i]/param.t_acc} t_acc")
-                radii = np.linspace(0, 2*param.sample_pts, 2*param.sample_pts)  # Distances from the origin
+                radii = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]  # Distances from the origin
                 molecule_counts = self.nh_density_s1[i][::-1] + self.nh_density_g1[i][::-1]
                 
-                r_cut = self._index_help([j/param.AU for j in self.radius_s1[i]][::-1]+
-                                         [j/param.AU for j in self.radius_g1[i]][::-1], param.r_env/1e3)
                 # Create a grid
-                x = np.linspace(0, 2*param.sample_pts, 2*param.sample_pts)
-                y = np.linspace(0, 2*param.sample_pts, 2*param.sample_pts)
+                x = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]
+                y = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]
 
                 xx, yy = np.meshgrid(x, y)
                 r = np.sqrt(xx**2 + yy**2)
@@ -174,29 +171,22 @@ class shu_graph():
                 norm = LogNorm(vmin=param.visser_vmin, vmax=param.visser_vmax)
 
                 # Plot the radially symmetrical image
-                im = ax.imshow(interpolated_data, cmap='gist_rainbow_r', origin='lower', 
-                               extent=[0, 2*param.sample_pts, 0, 2*param.sample_pts], norm=norm)
+                im = ax.contourf(x, y, interpolated_data, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm, aspect='auto')
                 
-                outer_edge = self._index_help([j/param.AU for j in self.radius_s1[i]][::-1]+
-                                        [j/param.AU for j in self.radius_g1[i]][::-1], 1.5)
-                ax.set_xlim(0, outer_edge)
-                ax.set_ylim(0, outer_edge)
+                ax.set_xlim(0, 1.5)
+                ax.set_ylim(0, 1.5)
 
-                tick_selected = self._tick_help([j/param.AU for j in self.radius_s1[i]][::-1]+
-                                                [j/param.AU for j in self.radius_g1[i]][::-1], param.tick)
-                print(f"case {i+1} with {tick_selected}, and outer edge {outer_edge}")
-                ax.set_xticks(tick_selected, param.tick)
-                ax.set_yticks(tick_selected, param.tick)
+                # tick_selected = self._tick_help([j/param.AU for j in self.radius_s1[i]][::-1]+
+                #                                 [j/param.AU for j in self.radius_g1[i]][::-1], param.tick)
+                # print(f"case {i+1} with {tick_selected}, and outer edge {outer_edge}")
+                # ax.set_xticks(tick_selected, param.tick)
+                # ax.set_yticks(tick_selected, param.tick)
 
-                circle = patches.Circle((0,0), r_cut, fill=False, edgecolor='white', linewidth=2)
-                ax.add_patch(circle)
-
-                for t in tick_selected:
-                    circ_tick = patches.Circle((0,0), t, fill=False, edgecolor='grey', linewidth=2)
-                    ax.add_patch(circ_tick)
+                r_env_edge = patches.Circle((0,0), param.r_env/1e3, fill=False, edgecolor='black', linewidth=2)
+                ax.add_patch(r_env_edge)
 
                 # Add contour line at the value
-                ax.contour(xx, yy, interpolated_data, levels=[param.visser_contour],        # AU label   
+                ax.contour(xx, yy, interpolated_data, levels=[param.visser_contour],         
                            colors='red', linewidths=2)
 
                 ax.set_title(f't = {param.time[i]/param.t_acc}')
@@ -204,29 +194,10 @@ class shu_graph():
             else:
                 plt.axis("off")
                 cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
+                cbar.set_ticks([10**4, 10**5, 10**6, 10**7, 10**8, 10**9])
                 cbar.set_label('Density')
 
         fig.suptitle('Shu (1977) 2D Graph (n_h)')
-
-    def _index_help(self, length, value):
-        index = None
-        min_difference = float('inf')
-
-        for i, element in enumerate(length):
-            difference = abs(element/1e3 - value)
-            if difference < min_difference:
-                min_difference = difference
-                index = i
-
-        print(f'Closest to: {value}1e3 AU')
-        return index
-
-    def _tick_help(self, length, tick):
-        tick_selected = []
-        for t in tick:
-            tick_selected.append(self._index_help(length, t))
-
-        return tick_selected
 
 class tsc_graph():
     def __init__(self, save=False):
@@ -265,8 +236,7 @@ class tsc_graph():
         self.nh_density_s1  = self.tsc.get_nh_density_s1(theta=np.pi/4)
         self.nh_density_g1  = self.tsc.get_nh_density_g1(theta=np.pi/4)
 
-        self._help_inner_edge     = [(param.omega*i)**2 for i in param.time]
-        self.inner_edge = self._tick_help([1/i for i in z_g1], self._help_inner_edge)[::-1]
+        self.inner_edge     = [(param.omega*i)**2 for i in param.time]
     
     def dimensionless_a_1d(self):
         """
@@ -385,7 +355,7 @@ class tsc_graph():
     def nh_density_2d(self):
         """
         Plot density profiles in density of hydrogen units in 2D for different times using 
-        a logarithmic colormap with contour value.
+        contour plots with a logarithmic colormap.
         """
         fig, axes = plt.subplots(2, 4)
         axes_flat = axes.flatten()
@@ -403,12 +373,9 @@ class tsc_graph():
                     value_map.append(tsc_density_s1[i][::-1] + tsc_density_g1[i][::-1])
 
                 # Example data in (r, theta) format
-                r_values = np.linspace(0, 2*param.sample_pts, 2*param.sample_pts)
+                r_values = np.array([i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]])
                 molecule_counts = value_map  # List of lists, each sublist represents data at a theta value
-
-                r_env_edge = self._index_help([j/param.AU for j in self.radius_s1[i]][::-1]+
-                                         [j/param.AU for j in self.radius_g1[i]][::-1], param.r_env/1e3)
-
+                
                 # Convert (r, theta) to (x, y) coordinates
                 x_values = []
                 y_values = []
@@ -422,79 +389,46 @@ class tsc_graph():
                 data_flat = np.array(molecule_counts).flatten()
 
                 # Create a grid in (x, y) coordinates
-                x_grid = np.linspace(0, max(x_flat), 2*param.sample_pts)
-                y_grid = np.linspace(0, max(y_flat), 2*param.sample_pts)
+                x_grid = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]
+                y_grid = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]
                 xx, yy = np.meshgrid(x_grid, y_grid)
 
                 # Interpolate data onto the (x, y) grid
                 data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
 
-                # Plot the interpolated data using imshow()
+                # Create a contour plot with a logarithmic colormap
                 norm = LogNorm(vmin=param.visser_vmin, vmax=param.visser_vmax)
-                im = ax.imshow(data_interp, extent=[0, max(x_flat), 0, max(y_flat)],
-                        cmap='gist_rainbow_r', origin='lower', aspect='auto', norm=norm)
+                im = ax.contourf(xx, yy, data_interp, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm)
 
-                graph_cut = self._index_help([j/param.AU for j in self.radius_s1[i]][::-1]+
-                                              [j/param.AU for j in self.radius_g1[i]][::-1], 1.5)   # cut graph to compare with Visser
+                ax.set_xlim(0, 1.5)
+                ax.set_ylim(0, 1.5)
 
-                ax.set_xlim(0, graph_cut)
-                ax.set_ylim(0, graph_cut)
-
-                tick_selected = self._tick_help([j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1], param.tick)
-                print(f"case {i+1} with AU mark being {tick_selected}, outer edge {r_env_edge}, inner edge {self.inner_edge[i]}")
-                ax.set_xticks(tick_selected, param.tick)
-                ax.set_yticks(tick_selected, param.tick)
-                ax.xaxis.set_ticklabels(param.tick)
-
-                # Add contour line at the value
-                circ_outer = patches.Circle((0,0), r_env_edge, fill=False, edgecolor='white', linewidth=2)
+                r_env_edge = patches.Circle((0,0), param.r_env/1e3, fill=False, edgecolor='black', linewidth=2)
+                ax.add_patch(r_env_edge)
                 circ_inner = patches.Circle((0,0), self.inner_edge[i], fill=False, edgecolor='black', linewidth=2)
-                ax.add_patch(circ_outer)
                 ax.add_patch(circ_inner)
 
-                for t in tick_selected:
-                    circ_tick = patches.Circle((0,0), t, fill=False, edgecolor='grey', linewidth=2)
-                    ax.add_patch(circ_tick)
-
-                ax.contour(xx, yy, data_interp, levels=[param.visser_contour],        # AU label   
+                # Add contour line at the value
+                ax.contour(xx, yy, data_interp, levels=[param.visser_contour],           
                            colors='red', linewidths=2)
 
                 ax.set_title(f't = {param.time[i]/param.t_acc}')
-
+                
             else:
                 plt.axis('off')
                 cbar = plt.colorbar(im, ax=axes.ravel().tolist(), orientation='vertical')
+                cbar.set_ticks([10**4, 10**5, 10**6, 10**7, 10**8, 10**9])
                 cbar.set_label('Density')
-
-        fig.suptitle('TSC (1984) 2D Graph (nh)')
-
-    def _index_help(self, length, value):
-        index = None
-        min_difference = float('inf')
-
-        for i, element in enumerate(length):
-            difference = abs(element/1e3 - value)
-            if difference < min_difference:
-                min_difference = difference
-                index = i
-
-        print(f'Closest to: {value}1e3 AU')
-        return index
-
-    def _tick_help(self, length, tick):
-        tick_selected = []
-        for t in tick:
-            tick_selected.append(self._index_help(length, t))
-
-        return tick_selected
+    
+        fig.suptitle('TSC (1984) 2D Graph (n_h)')
 
 ########## Shu (1977) Graph ##########
 s = shu_graph()
 # s.dimensionless_a_v_1d()
 # s.cgs_density_1d()
 # s.nh_density_1d()
-s.cgs_density_2d()
-# s.nh_density_2d()
+# s.cgs_density_2d()
+s.nh_density_2d()
 
 ########## TSC (1984) Graph ##########
 # t = tsc_graph()
@@ -503,7 +437,6 @@ s.cgs_density_2d()
 # t.dimensionless_mono_v_1d()
 # t.cgs_density_1d()
 # t.nh_density_1d()
-# t.cgs_density_2d()
 # t.nh_density_2d()
 
 plt.xscale('log')

@@ -1,22 +1,10 @@
 import json
 
-details = {"id": 5, 
-           "name": "haley", 
-           "class": 8, 
-           "email": "haley@pynative.com"}
+with open('convert.txt') as json_file:
+    json_decoded = json.load(json_file)
 
-with open('convert.txt', 'a') as convert_file:
-	convert_file.write(json.dumps(details))
+print([float(i) for i in json_decoded["0,1,2,3,4,5,6,7,8,9,10"].split(",")])
+json_decoded[','.join([str(i) for i in range(11)])] = ','.join([str(i) for i in range(5)])
 
-# reading the data from the file
-studentsList = []
-print("Started Reading JSON file which contains multiple JSON document")
-with open('convert.txt') as f:
-    for jsonObj in f:
-        studentDict = json.loads(jsonObj)
-        studentsList.append(studentDict)
-
-print("Printing each JSON Decoded Object")
-for student in studentsList:
-    print(type(student))
-    print(student["id"], student["name"], student["class"], student["email"])
+with open('convert.txt', 'w') as json_file:
+    json.dump(json_decoded, json_file)

@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.colors import LogNorm
 from scipy.interpolate import griddata
+from collections import OrderedDict
 import numpy as np
+import json
 
 from envelope.shu77 import shu
 from envelope.tsc84 import tsc
@@ -33,45 +35,84 @@ class shu_graph():
 
         Args:
             save (bool): Whether to save the graph. Default is False.
+
+        (Output):
+            self.radius     [cm]/AU
+            self.nh_density [nh] -> *param.M_H to go back to cgs
+            self.v_r        [cgs]
+            
         """
-        # Create a Shu instance with specified parameters
-        self.shu = shu(z_g1=z_g1, z_s1=z_s1, cs=param.cs, time=param.time)
+        data_param = [param.cs, param.t_acc, param.omega, param.time]
+        if data.isSaved(param=data_param, model="Shu") == True:
+            self.radius, self.nh_density, self.v_r, self.v_theta, self.v_phi = data.load(param=data_param, model="Shu")
 
-        # Initialize self-similar variables
-        self.z_g1       = self.shu.get_z_g1()
-        self.z_s1       = self.shu.get_z_s1()
-        self.a_shu_s1   = self.shu.get_a_s1()
-        self.v_shu_s1   = self.shu.get_v_s1()
-        self.a_shu_g1   = self.shu.get_a_g1()
-        self.v_shu_g1   = self.shu.get_v_g1()
-        self.dadz       = self.shu.get_dadz()
-        self.dvdz       = self.shu.get_dvdz()
+            # Convert the string back to a nested list
+            self.radius     = list(json.loads(self.radius, object_pairs_hook=OrderedDict))
+            self.nh_density = list(json.loads(self.nh_density, object_pairs_hook=OrderedDict))
+            self.v_r        = list(json.loads(self.v_r, object_pairs_hook=OrderedDict))
+            self.v_theta    = list(json.loads(self.v_theta, object_pairs_hook=OrderedDict))
+            self.v_phi      = list(json.loads(self.v_phi, object_pairs_hook=OrderedDict))
 
-        # Initialize dimension variables
-        self.radius_g1      = self.shu.get_r_g1()
-        self.radius_s1      = self.shu.get_r_s1()
-        self.cgs_density_g1 = self.shu.get_cgs_rho_g1()
-        self.cgs_density_s1 = self.shu.get_cgs_rho_s1()
-        self.nh_density_g1  = self.shu.get_nh_rho_g1()
-        self.nh_density_s1  = self.shu.get_nh_rho_s1()
+        if data.isSaved(param=data_param, model="Shu") == False:
+            # Create a Shu instance with specified parameters
+            self.shu = shu(z_g1=z_g1, z_s1=z_s1, cs=param.cs, time=param.time)
 
-        if save == True:
-            data_param = [param.cs, param.t_acc, param.omega, param.time]
-            radius = []
-            density = []
-            v_r = []
+            # Initialize self-similar variables
+            self.z_g1       = self.shu.get_z_g1()
+            self.z_s1       = self.shu.get_z_s1()
+            self.a_shu_s1   = self.shu.get_a_s1()
+            self.v_shu_s1   = self.shu.get_v_s1()
+            self.a_shu_g1   = self.shu.get_a_g1()
+            self.v_shu_g1   = self.shu.get_v_g1()
+            self.dadz       = self.shu.get_dadz()
+            self.dvdz       = self.shu.get_dvdz()
+
+            # Initialize dimension variables
+            self.radius_g1      = self.shu.get_r_g1()
+            self.radius_s1      = self.shu.get_r_s1()
+            self.cgs_density_g1 = self.shu.get_cgs_rho_g1()
+            self.cgs_density_s1 = self.shu.get_cgs_rho_s1()
+            self.nh_density_g1  = self.shu.get_nh_rho_g1()
+            self.nh_density_s1  = self.shu.get_nh_rho_s1()
+
+            self.radius     = []
+            self.nh_density = []
+            self.v_r        = []
             for i in range(len(param.time)):
-                radius.append(self.radius_s1[i][::-1]+self.radius_g1[i][::-1])    # must divide AU
-                density.append(self.nh_density_s1[i][::-1]+self.nh_density_g1[i][::-1])
-                v_r.append([param.cs*j for j in self.v_shu_s1][::-1]+[param.cs*j for j in self.v_shu_g1][::-1])
+                self.radius.append([j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1])
+                self.nh_density.append(self.nh_density_s1[i][::-1]+self.nh_density_g1[i][::-1])
+                self.v_r.append([param.cs*j for j in self.v_shu_s1][::-1]+[param.cs*j for j in self.v_shu_g1][::-1])
 
-            data.save(param=data_param, model="Shu", radius=radius, density=density, v_r=v_r)
+            # for i in range(len(param.time)):
+            #     print(len(self.radius), len(self.nh_density[0]))
+            #     plt.plot(self.radius[i], [j*param.M_H for j in self.nh_density[i]][::-1], color=param.color_1d[i], label=f't={param.time[i]/1e12}e12')
+
+            # if save == True and data.isSaved(param=data_param, model="Shu") == False:
+                
+            #     self.radius_str     = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
+            #     self.nh_density_str = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.nh_density)
+            #     self.v_r_str        = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.v_r)
+
+            #     data.save(param=data_param, model="Shu", radius=self.radius, density=self.nh_density, v_r=self.v_r)
+
+            #     self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('\n')]
+            #     self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('\n')]
+            #     self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('\n')]
 
     def dimensionless_a_v_1d(self):
         """
         Plot the dimensionless density and velocity profiles in 1D,
         against the radius (1/z).
         """
+        self.shu = shu(z_g1=z_g1, z_s1=z_s1, cs=param.cs, time=param.time)
+
+        self.z_g1       = self.shu.get_z_g1()
+        self.z_s1       = self.shu.get_z_s1()
+        self.a_shu_s1   = self.shu.get_a_s1()
+        self.v_shu_s1   = self.shu.get_v_s1()
+        self.a_shu_g1   = self.shu.get_a_g1()
+        self.v_shu_g1   = self.shu.get_v_g1()
+
         plt.plot([1/i for i in self.z_g1], self.a_shu_g1)
         plt.plot([1/i for i in self.z_s1], self.a_shu_s1)
         plt.plot([1/i for i in self.z_g1], [-i for i in self.v_shu_g1])
@@ -81,11 +122,8 @@ class shu_graph():
         """
         Plot the density profiles in CGS units in 1D for different time.
         """
-        # index = self._index_help()
-
         for i in range(len(param.time)):
-            plt.plot([j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1],
-                      self.cgs_density_s1[i][::-1]+self.cgs_density_g1[i][::-1], color=param.color_1d[i], label=f't={param.time[i]/1e12}e12')
+            plt.plot(self.radius[i], [j*param.M_H for j in self.nh_density[i]], color=param.color_1d[i], label=f't={param.time[i]/1e12}e12')
 
     def nh_density_1d(self):
         """
@@ -428,7 +466,7 @@ class tsc_graph():
 ########## Shu (1977) Graph ##########
 s = shu_graph(save=True)
 # s.dimensionless_a_v_1d()
-# s.cgs_density_1d()
+s.cgs_density_1d()
 # s.nh_density_1d()
 # s.cgs_density_2d()
 # s.nh_density_2d()
@@ -445,4 +483,4 @@ s = shu_graph(save=True)
 
 plt.xscale('log')
 plt.yscale('log')
-# plt.show()
+plt.show()

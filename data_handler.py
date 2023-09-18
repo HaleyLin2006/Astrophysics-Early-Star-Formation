@@ -28,24 +28,52 @@ class data():
                 cs, t_acc, omega, time 
         """        
         ifSave = self.isSaved(param, model)
-        
-        if ifSave == False:
-            print("Data already exist!")
 
-        if ifSave == True:
+        if ifSave == False:
             print("Saving data...")
             data = [param, model, radius, density, v_r, v_theta, v_phi]
             self.df.loc[len(self.df)] = data            
             self.df.to_csv('data.csv')
     
-    def isSaved(self, param=[], model=""):
-        ifSave = True
+    def load(self, param=[], model=""):
         tf_param = list(self.df['param'].isin([str(param)]))
         tf_model = list(self.df['model'].isin([str(model)]))
         print(tf_param, tf_model)
         for i in range(len(tf_param)):
             if tf_param[i] == True and tf_model[i] == True:
-                ifSave = False
+                radius  = self.df.iloc[i]['radius']
+                density = self.df.iloc[i]['radius']
+                v_r     = self.df.iloc[i]['v_r']
+                v_theta = self.df.iloc[i]['v_theta']
+                v_phi   = self.df.iloc[i]['v_phi']
+
+        return radius, density, v_r, v_theta, v_phi
+    
+    def isSaved(self, param=[], model=""):
+        """
+        Check if the combination of parameter and model have been save enough.
+
+        args:
+            param: the parameter used to calculate data
+                [cs, t_acc, omega, time]
+            model: which version of calculation
+                "Shu" or "TSC"
+
+        return:
+            ifSaved: determine if the combination have save before
+                True: yes, the data have been saved before
+                False: no, the data need to be save
+        """
+        ifSave = False
+        tf_param = list(self.df['param'].isin([str(param)]))
+        tf_model = list(self.df['model'].isin([str(model)]))
+        print(tf_param, tf_model)
+        for i in range(len(tf_param)):
+            if tf_param[i] == True and tf_model[i] == True:
+                ifSave = True
                 break
+        
+        if ifSave == True:
+            print("Data already exist!")
         
         return ifSave

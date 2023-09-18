@@ -2,9 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.colors import LogNorm
 from scipy.interpolate import griddata
-from collections import OrderedDict
 import numpy as np
-import json
+import ast
 
 from envelope.shu77 import shu
 from envelope.tsc84 import tsc
@@ -44,14 +43,12 @@ class shu_graph():
         """
         data_param = [param.cs, param.t_acc, param.omega, param.time]
         if data.isSaved(param=data_param, model="Shu") == True:
-            self.radius, self.nh_density, self.v_r, self.v_theta, self.v_phi = data.load(param=data_param, model="Shu")
+            self.radius_str, self.nh_density_str, self.v_r_str, self.v_theta_str, self.v_phi_str = data.load(param=data_param, model="Shu")
 
             # Convert the string back to a nested list
-            self.radius     = list(json.loads(self.radius, object_pairs_hook=OrderedDict))
-            self.nh_density = list(json.loads(self.nh_density, object_pairs_hook=OrderedDict))
-            self.v_r        = list(json.loads(self.v_r, object_pairs_hook=OrderedDict))
-            self.v_theta    = list(json.loads(self.v_theta, object_pairs_hook=OrderedDict))
-            self.v_phi      = list(json.loads(self.v_phi, object_pairs_hook=OrderedDict))
+            self.radius     = ast.literal_eval(self.radius_str)
+            self.nh_density = ast.literal_eval(self.nh_density_str)
+            self.v_r_str    = ast.literal_eval(self.v_r_str)
 
         if data.isSaved(param=data_param, model="Shu") == False:
             # Create a Shu instance with specified parameters
@@ -83,21 +80,17 @@ class shu_graph():
                 self.nh_density.append(self.nh_density_s1[i][::-1]+self.nh_density_g1[i][::-1])
                 self.v_r.append([param.cs*j for j in self.v_shu_s1][::-1]+[param.cs*j for j in self.v_shu_g1][::-1])
 
-            # for i in range(len(param.time)):
-            #     print(len(self.radius), len(self.nh_density[0]))
-            #     plt.plot(self.radius[i], [j*param.M_H for j in self.nh_density[i]][::-1], color=param.color_1d[i], label=f't={param.time[i]/1e12}e12')
+            if save == True and data.isSaved(param=data_param, model="Shu") == False:
 
-            # if save == True and data.isSaved(param=data_param, model="Shu") == False:
-                
-            #     self.radius_str     = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
-            #     self.nh_density_str = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.nh_density)
-            #     self.v_r_str        = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.v_r)
+                self.radius_str     = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
+                self.nh_density_str = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.nh_density)
+                self.v_r_str        = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.v_r)
 
-            #     data.save(param=data_param, model="Shu", radius=self.radius, density=self.nh_density, v_r=self.v_r)
+                data.save(param=data_param, model="Shu", radius=self.radius, density=self.nh_density, v_r=self.v_r)
 
-            #     self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('\n')]
-            #     self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('\n')]
-            #     self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('\n')]
+                self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('\n')]
+                self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('\n')]
+                self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('\n')]
 
     def dimensionless_a_v_1d(self):
         """
@@ -130,8 +123,7 @@ class shu_graph():
         Plot the density profiles in density of hydrogen in 1D for different time.
         """
         for i in range(len(param.time)):
-            plt.plot([j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1],
-                      self.nh_density_s1[i][::-1]+self.nh_density_g1[i][::-1], color=param.color_1d[i], label=f't={param.time[i]/1e12}e12')
+            plt.plot(self.radius[i], self.nh_density[i], color=param.color_1d[i], label=f't={param.time[i]/1e12}e12')
 
     def cgs_density_2d(self):
         """
@@ -148,7 +140,7 @@ class shu_graph():
                 print(f"progress: {i+1}/{len(param.time)}, currently at {param.time[i]/param.t_acc} t_acc")
                 
                 radii = np.linspace(0, 2*param.sample_pts, 2*param.sample_pts)  # Distances from the origin
-                molecule_counts = self.cgs_density_s1[i][::-1] + self.cgs_density_g1[i][::-1]
+                molecule_counts = [j*param.M_H for j in self.nh_density[i]]
 
                 # Create a grid
                 x = np.linspace(0, 2*param.sample_pts, 2*param.sample_pts)
@@ -192,12 +184,12 @@ class shu_graph():
         for i, ax in enumerate(axes_flat):
             if i < len(param.time):
                 print(f"progress: {i+1}/{len(param.time)}, currently at {param.time[i]/param.t_acc} t_acc")
-                radii = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]  # Distances from the origin
-                molecule_counts = self.nh_density_s1[i][::-1] + self.nh_density_g1[i][::-1]
+                radii = [j/1e3 for j in self.radius[i]]  # Distances from the origin
+                molecule_counts = self.nh_density[i]
                 
                 # Create a grid
-                x = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]
-                y = [i/1e3 for i in [j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1]]
+                x = [j/1e3 for j in self.radius[i]] 
+                y = [j/1e3 for j in self.radius[i]] 
 
                 xx, yy = np.meshgrid(x, y)
                 r = np.sqrt(xx**2 + yy**2)
@@ -466,10 +458,10 @@ class tsc_graph():
 ########## Shu (1977) Graph ##########
 s = shu_graph(save=True)
 # s.dimensionless_a_v_1d()
-s.cgs_density_1d()
+# s.cgs_density_1d()
 # s.nh_density_1d()
 # s.cgs_density_2d()
-# s.nh_density_2d()
+s.nh_density_2d()
 
 ########## TSC (1984) Graph ##########
 # t = tsc_graph()

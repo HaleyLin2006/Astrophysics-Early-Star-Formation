@@ -13,7 +13,6 @@ import numpy as np
 # mid_term_marks_df.to_csv("midterm.csv")
 # print(mid_term_marks_df)
 df = pd.read_csv("data.csv")
-print(df)
 
 class data():
     def __init__(self):
@@ -38,11 +37,10 @@ class data():
     def load(self, param=[], model=""):
         tf_param = list(self.df['param'].isin([str(param)]))
         tf_model = list(self.df['model'].isin([str(model)]))
-        print(tf_param, tf_model)
         for i in range(len(tf_param)):
             if tf_param[i] == True and tf_model[i] == True:
                 radius  = self.df.iloc[i]['radius']
-                density = self.df.iloc[i]['radius']
+                density = self.df.iloc[i]['density']
                 v_r     = self.df.iloc[i]['v_r']
                 v_theta = self.df.iloc[i]['v_theta']
                 v_phi   = self.df.iloc[i]['v_phi']
@@ -67,7 +65,6 @@ class data():
         ifSave = False
         tf_param = list(self.df['param'].isin([str(param)]))
         tf_model = list(self.df['model'].isin([str(model)]))
-        print(tf_param, tf_model)
         for i in range(len(tf_param)):
             if tf_param[i] == True and tf_model[i] == True:
                 ifSave = True

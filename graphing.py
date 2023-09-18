@@ -6,34 +6,23 @@ import numpy as np
 
 from envelope.shu77 import shu
 from envelope.tsc84 import tsc
+from data_handler import data
 from parameter import param
 
 param = param()
+data = data()
 
 z_g1 = [2/(i+1) for i in np.logspace(param.sample_range, 0, param.sample_pts)]  # also x_s1
 z_s1 = np.logspace(0, param.sample_range, param.sample_pts)
 
-# z_g = np.linspace(1/(10**param.sample_range), 1, param.sample_pts)
-# z_s = np.linspace(1, 10**param.sample_range, param.sample_pts)
-
 # TODO: save param and data (if same param -> don't save)
 # TODO: sphinx
 # TODO: format of Shu and TSC in graphing is different
-# TODO: flip r and density in Shu and TSC
 
-# edge (1.5AU) and radii (/1e3) and grid (to actual)
-
-# TODO: combine Shu and TSC
 # TODO: after combine Shu and TSC -> integrate them to check the total mass
 
-'''
-# TODO: xticks method to change x, y axis method for 2D case
-PROBLEM: when translating the scale of logspace to linspace to fit the Visser diagram,
-            the scale is always not fine enough (even for 5000 it's all red inside)
-            which scale can I use?
-        --> try only use linspace for those in boundary 
-            --> also have to change shu/tsc to include this (different initial value)
-'''
+# TODO: Load data
+# TODO: don't run shu if data saved
 
 #   Envelope
 class shu_graph():
@@ -65,6 +54,18 @@ class shu_graph():
         self.cgs_density_s1 = self.shu.get_cgs_rho_s1()
         self.nh_density_g1  = self.shu.get_nh_rho_g1()
         self.nh_density_s1  = self.shu.get_nh_rho_s1()
+
+        if save == True:
+            data_param = [param.cs, param.t_acc, param.omega, param.time]
+            radius = []
+            density = []
+            v_r = []
+            for i in range(len(param.time)):
+                radius.append(self.radius_s1[i][::-1]+self.radius_g1[i][::-1])    # must divide AU
+                density.append(self.nh_density_s1[i][::-1]+self.nh_density_g1[i][::-1])
+                v_r.append([param.cs*j for j in self.v_shu_s1][::-1]+[param.cs*j for j in self.v_shu_g1][::-1])
+
+            data.save(param=data_param, model="Shu", radius=radius, density=density, v_r=v_r)
 
     def dimensionless_a_v_1d(self):
         """
@@ -230,8 +231,12 @@ class tsc_graph():
         self.nh_density_s1  = self.tsc.get_nh_density_s1(theta=np.pi/4)
         self.nh_density_g1  = self.tsc.get_nh_density_g1(theta=np.pi/4)
 
-        self.inner_edge     = [(param.omega*i)**2 for i in param.time]
-    
+        self.inner_edge     = [(param.omega*t)**2* param.cs*t/param.AU for t in param.time]
+        self.outer_edge     = [1/(param.omega*t) * param.cs*t/param.AU for t in param.time]
+        print(param.omega*param.M*param.G/0.975/param.cs**3)
+        print([param.omega*t for t in param.time])
+        print(self.outer_edge)
+       
     def dimensionless_a_1d(self):
         """
         Plot the dimensionless density profiles in 1D against radius (1/z).
@@ -397,10 +402,14 @@ class tsc_graph():
                 ax.set_xlim(0, 1.5)
                 ax.set_ylim(0, 1.5)
 
-                r_env_edge = patches.Circle((0,0), param.r_env/1e3, fill=False, edgecolor='black', linewidth=2)
+                r_env_edge = patches.Circle((0,0), param.r_env/1e3, fill=False, edgecolor='white', linewidth=2)
                 ax.add_patch(r_env_edge)
-                circ_inner = patches.Circle((0,0), self.inner_edge[i], fill=False, edgecolor='black', linewidth=2)
+                circ_inner = patches.Circle((0,0), self.inner_edge[i]/1e3, fill=False, edgecolor='black', linewidth=2)
+                print(self.inner_edge[i]/1e3)
                 ax.add_patch(circ_inner)
+                # print(self.outer_edge)
+                # circ_outer = patches.Circle((0,0), self.outer_edge[i], fill=False, edgecolor='black', linewidth=2)
+                # ax.add_patch(circ_outer)
 
                 # Add contour line at the value
                 ax.contour(xx, yy, data_interp, levels=[param.visser_contour],           
@@ -417,12 +426,12 @@ class tsc_graph():
         fig.suptitle('TSC (1984) 2D Graph (n_h)')
 
 ########## Shu (1977) Graph ##########
-s = shu_graph()
+s = shu_graph(save=True)
 # s.dimensionless_a_v_1d()
 # s.cgs_density_1d()
 # s.nh_density_1d()
 # s.cgs_density_2d()
-s.nh_density_2d()
+# s.nh_density_2d()
 
 ########## TSC (1984) Graph ##########
 # t = tsc_graph()
@@ -431,8 +440,9 @@ s.nh_density_2d()
 # t.dimensionless_mono_v_1d()
 # t.cgs_density_1d()
 # t.nh_density_1d()
+# t.cgs_density_2d()
 # t.nh_density_2d()
 
 plt.xscale('log')
 plt.yscale('log')
-plt.show()
+# plt.show()

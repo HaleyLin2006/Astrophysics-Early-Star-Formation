@@ -13,10 +13,11 @@ class param():
         self.t_acc          = 2.5*1e5 * 31556926                                                    # t_acc in Visser (2009)         [s]
         self.omega          = 1e-13                                                                 # rotation rate in Visser (2009) [s-1]
         self.r_env          = self.G*self.M/2/self.cs**2 / self.AU                                  # outer radius 
-        self.time           = [0.05*self.t_acc, 0.1*self.t_acc, 0.2*self.t_acc, 0.3*self.t_acc, 
-                               0.5*self.t_acc, 0.7*self.t_acc, self.t_acc]                          # time in Visser (2009) [s]
+        # self.time           = [0.05*self.t_acc, 0.1*self.t_acc, 0.2*self.t_acc, 0.3*self.t_acc, 
+        #                        0.5*self.t_acc, 0.7*self.t_acc, self.t_acc]                          # time in Visser (2009) [s]
         
-        # self.time           = [0.1*self.t_acc, 0.5*self.t_acc, self.t_acc]
+        self.time           = [0.1*self.t_acc, 0.5*self.t_acc, self.t_acc]
+        self.max_tau        = 0.01
 
         #   varaible for calculation
         self.sample_pts     = 1000

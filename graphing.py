@@ -16,14 +16,11 @@ data = data()
 z_g1 = [2/(i+1) for i in np.logspace(param.sample_range, 0, param.sample_pts)]  # also x_s1
 z_s1 = np.logspace(0, param.sample_range, param.sample_pts)
 
-# TODO: save param and data (if same param -> don't save)
+# TODO: save param and data (if same param -> don't save) for TSC!!!
 # TODO: sphinx
 # TODO: format of Shu and TSC in graphing is different
 
 # TODO: after combine Shu and TSC -> integrate them to check the total mass
-
-# TODO: Load data
-# TODO: don't run shu if data saved
 
 #   Envelope
 class shu_graph():
@@ -44,11 +41,15 @@ class shu_graph():
         data_param = [param.cs, param.t_acc, param.omega, param.time]
         if data.isSaved(param=data_param, model="Shu") == True:
             self.radius_str, self.nh_density_str, self.v_r_str, self.v_theta_str, self.v_phi_str = data.load(param=data_param, model="Shu")
+            
+            # print(len(self.radius), len(self.radius[0]))
+            self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
+            self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('|')]
+            self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('|')]
 
-            # Convert the string back to a nested list
-            self.radius     = ast.literal_eval(self.radius_str)
-            self.nh_density = ast.literal_eval(self.nh_density_str)
-            self.v_r_str    = ast.literal_eval(self.v_r_str)
+            print(len(self.radius), len(self.radius[0]))
+            print(len(self.nh_density), len(self.nh_density[0]))
+            print("Loading Successfully!")
 
         if data.isSaved(param=data_param, model="Shu") == False:
             # Create a Shu instance with specified parameters
@@ -82,15 +83,18 @@ class shu_graph():
 
             if save == True and data.isSaved(param=data_param, model="Shu") == False:
 
-                self.radius_str     = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
-                self.nh_density_str = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.nh_density)
-                self.v_r_str        = '\n'.join('\t'.join(map(str, sublist)) for sublist in self.v_r)
+                self.radius_str     = '|'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
+                self.nh_density_str = '|'.join('\t'.join(map(str, sublist)) for sublist in self.nh_density)
+                self.v_r_str        = '|'.join('\t'.join(map(str, sublist)) for sublist in self.v_r)
 
-                data.save(param=data_param, model="Shu", radius=self.radius, density=self.nh_density, v_r=self.v_r)
+                data.save(param=data_param, model="Shu", radius=self.radius_str, density=self.nh_density_str, v_r=self.v_r_str)
+    
+                self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
+                self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('|')]
+                self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('|')]
 
-                self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('\n')]
-                self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('\n')]
-                self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('\n')]
+                print(len(self.radius), len(self.radius[0]))
+                print(len(self.nh_density), len(self.nh_density[0]))
 
     def dimensionless_a_v_1d(self):
         """
@@ -232,40 +236,115 @@ class tsc_graph():
 
         Args:
             save (bool): Whether to save the graph. Default is False.
+
+        (Output):
+            self.radius     [cm]/AU
+            self.nh_density [nh] -> *param.M_H to go back to cgs
+            self.v_r        [cgs]
         """
-        # Create Shu and TSC instances with specified parameters
-        self.shu = shu(z_g1=z_g1, z_s1=z_s1, cs=param.cs, time=param.time)
-        self.tsc = tsc(z_g1=z_g1, z_s1=z_s1, a_shu_s1=self.shu.get_a_s1(),
-                       a_shu_g1=self.shu.get_a_g1(), v_shu_s1=self.shu.get_v_s1(),
-                       store_dadz=self.shu.get_dadz(), store_dvdz=self.shu.get_dvdz(),
-                       cs=param.cs, time=param.time)
+        data_param = [param.cs, param.t_acc, param.omega, param.time]
+        if data.isSaved(param=data_param, model="TSC") == True:
+            self.radius_str, self.nh_density_str, self.v_r_str, self.v_theta_str, self.v_phi_str = data.load(param=data_param, model="TSC")
+
+            # Convert the string back to a nested list
+            self.radius         = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
+            self.nh_density     = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.nh_density_str.split('|')]
+            self.cgs_v_r        = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.v_r_str.split('|')]
+            self.cgs_v_theta    = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.v_theta_str.split('|')]
+            
+            print(len(self.radius), len(self.radius[0]))
+            print(len(self.nh_density), len(self.nh_density[0]), len(self.nh_density[0][0]))
+            print(len(self.cgs_v_r), len(self.cgs_v_r[0]))
+            print(len(self.cgs_v_theta), len(self.cgs_v_theta[0]))
+
+            print("Loading Successfully!")
         
-        # Initialize self-similar variables for TSC
-        self.quad_a_s1  = self.tsc.get_quad_a_s1()
-        self.quad_a_g1  = self.tsc.get_quad_a_g1()
-        self.mono_a_s1  = self.tsc.get_mono_a_s1()
-        self.mono_a_g1  = self.tsc.get_mono_a_g1()
+        if data.isSaved(param=data_param, model="TSC") == False:
+            # Create Shu and TSC instances with specified parameters
+            self.shu = shu(z_g1=z_g1, z_s1=z_s1, cs=param.cs, time=param.time)
+            self.tsc = tsc(z_g1=z_g1, z_s1=z_s1, a_shu_s1=self.shu.get_a_s1(), a_shu_g1=self.shu.get_a_g1(), 
+                            v_shu_s1=self.shu.get_v_s1(), v_shu_g1=self.shu.get_v_g1(),
+                            store_dadz=self.shu.get_dadz(), store_dvdz=self.shu.get_dvdz(),
+                            cs=param.cs, time=param.time)
+            
+            # # Initialize self-similar variables for TSC
+            # self.quad_a_s1  = self.tsc.get_quad_a_s1()
+            # self.quad_a_g1  = self.tsc.get_quad_a_g1()
+            # self.mono_a_s1  = self.tsc.get_mono_a_s1()
+            # self.mono_a_g1  = self.tsc.get_mono_a_g1()
 
-        self.quad_v_s1  = self.tsc.get_quad_v_s1()
-        self.quad_v_g1  = self.tsc.get_quad_v_g1()
-        self.quad_w_s1  = self.tsc.get_quad_w_s1()
-        self.quad_w_g1  = self.tsc.get_quad_w_g1()
+            # self.quad_v_s1  = self.tsc.get_quad_v_s1()
+            # self.quad_v_g1  = self.tsc.get_quad_v_g1()
+            # self.quad_w_s1  = self.tsc.get_quad_w_s1()
+            # self.quad_w_g1  = self.tsc.get_quad_w_g1()
 
-        self.mono_v_s1  = self.tsc.get_mono_v_s1()
+            # self.mono_v_s1  = self.tsc.get_mono_v_s1()
 
-        # Initialize dimension variables
-        self.radius_s1      = self.tsc.get_r_s1()
-        self.radius_g1      = self.tsc.get_r_g1()
-        self.cgs_density_s1 = self.tsc.get_cgs_density_s1(theta=np.pi/4)
-        self.cgs_density_g1 = self.tsc.get_cgs_density_g1(theta=np.pi/4)
-        self.nh_density_s1  = self.tsc.get_nh_density_s1(theta=np.pi/4)
-        self.nh_density_g1  = self.tsc.get_nh_density_g1(theta=np.pi/4)
+            # Initialize dimension variables
+            self.radius_s1      = self.tsc.get_r_s1()
+            self.radius_g1      = self.tsc.get_r_g1()
 
-        self.inner_edge     = [(param.omega*t)**2* param.cs*t/param.AU for t in param.time]
-        self.outer_edge     = [1/(param.omega*t) * param.cs*t/param.AU for t in param.time]
-        print(param.omega*param.M*param.G/0.975/param.cs**3)
-        print([param.omega*t for t in param.time])
-        print(self.outer_edge)
+            self.cgs_density_s1 = self.tsc.get_cgs_density_s1()
+            self.cgs_density_g1 = self.tsc.get_cgs_density_g1()
+            self.nh_density_s1  = self.tsc.get_nh_density_s1()
+            self.nh_density_g1  = self.tsc.get_nh_density_g1()
+
+            self.cgs_v_r_s1     = self.tsc.get_cgs_v_r_s1()
+            self.cgs_v_r_g1     = self.tsc.get_cgs_v_r_g1()
+            self.cgs_v_theta_s1 = self.tsc.get_cgs_v_theta_s1()
+            self.cgs_v_theta_g1 = self.tsc.get_cgs_v_theta_g1()
+
+            self.inner_edge     = [(param.omega*t)**2* param.cs*t/param.AU for t in param.time]
+            self.outer_edge     = [1/(param.omega*t) * param.cs*t/param.AU for t in param.time]
+            print(param.omega*param.M*param.G/0.975/param.cs**3)
+            print([param.omega*t for t in param.time])
+            print(self.outer_edge)
+
+            self.radius         = []
+            self.nh_density     = []
+            self.cgs_v_r        = []
+            self.cgs_v_theta    = []
+            self.cgs_v_phi      = []
+
+            for i in range(len(param.time)):
+                self.radius.append([j/param.AU for j in self.radius_s1[i]][::-1]+[j/param.AU for j in self.radius_g1[i]][::-1])
+
+                self.nh_density.append([])
+                self.cgs_v_r.append([])
+                self.cgs_v_theta.append([])
+                for j in range(param.theta_pts):
+                    self.nh_density[-1].append(self.nh_density_s1[i][j][::-1]+self.nh_density_g1[i][j][::-1])
+                    self.cgs_v_r[-1].append(self.cgs_v_r_s1[i][j][::-1]+self.cgs_v_r_g1[i][j][::-1])
+                    self.cgs_v_theta[-1].append(self.cgs_v_theta_s1[i][j][::-1]+self.cgs_v_theta_g1[i][j][::-1])
+
+            print(len(self.radius), len(self.radius[0]))
+            print(len(self.nh_density), len(self.nh_density[0]))
+            print(len(self.cgs_v_r), len(self.cgs_v_r[0]))
+            print(len(self.cgs_v_theta), len(self.cgs_v_theta[0]))
+            
+            if save == True and data.isSaved(param=data_param, model="TSC") == False:
+                
+                self.radius_str         = '|'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
+                self.nh_density_str     = '|'.join(';'.join('\t'.join(map(str, inner_list)) for inner_list in middle_list) for middle_list in self.nh_density)
+                self.cgs_v_r_str        = '|'.join(';'.join('\t'.join(map(str, inner_list)) for inner_list in middle_list) for middle_list in self.cgs_v_r)
+                self.cgs_v_theta_str    = '|'.join(';'.join('\t'.join(map(str, inner_list)) for inner_list in middle_list) for middle_list in self.cgs_v_theta)
+                
+                data.save(param=data_param, model="TSC", radius=self.radius_str, density=self.nh_density_str, v_r=self.cgs_v_r_str, v_theta=self.cgs_v_theta_str)
+                print("Saving Successfully!")
+
+                self.radius         = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
+                self.nh_density     = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.nh_density_str.split('|')]
+                self.cgs_v_r        = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.cgs_v_r_str.split('|')]
+                self.cgs_v_theta    = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.cgs_v_theta_str.split('|')]
+
+                print(len(self.radius), len(self.radius[0]))
+                print(len(self.nh_density), len(self.nh_density[0]))
+                print(len(self.cgs_v_r), len(self.cgs_v_r[0]))            
+                print(len(self.cgs_v_theta), len(self.cgs_v_theta[0]))
+
+                # self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('\n')]
+                # self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('\n')]
+                # self.cgs_v_r    = [list(map(float, line.split('\t'))) for line in self.cgs_v_r_str.split('\n')]
        
     def dimensionless_a_1d(self):
         """
@@ -455,16 +534,39 @@ class tsc_graph():
     
         fig.suptitle('TSC (1984) 2D Graph (n_h)')
 
+    def _help_str_to_lst(s):
+        s = s.strip("[]")
+        outer_parts = s.split("], [")
+        result = []
+        for outer_part in outer_parts:
+            inner_parts = outer_part.split("[")
+            outer_list = []
+            for inner_part in inner_parts:
+                inner_list = inner_part.split(",")
+                inner_list = [int(x) for x in inner_list]
+                outer_list.append(inner_list)
+            result.append(outer_list)
+        return result
+    
+    def _help_lst_to_str(lst):
+        result = []
+        for outer_list in lst:
+            inner_result = []
+            for middle_list in outer_list:
+                inner_result.append(",".join(map(str, middle_list)))
+            result.append("[".join(inner_result))
+        return "[" + "], [".join(result) + "]"
+    
 ########## Shu (1977) Graph ##########
-s = shu_graph(save=True)
+# s = shu_graph(save=True)
 # s.dimensionless_a_v_1d()
 # s.cgs_density_1d()
 # s.nh_density_1d()
 # s.cgs_density_2d()
-s.nh_density_2d()
+# s.nh_density_2d()
 
 ########## TSC (1984) Graph ##########
-# t = tsc_graph()
+t = tsc_graph(save=True)
 # t.dimensionless_a_1d()
 # t.dimensionless_quad_v_w_1d()
 # t.dimensionless_mono_v_1d()
@@ -475,4 +577,4 @@ s.nh_density_2d()
 
 plt.xscale('log')
 plt.yscale('log')
-plt.show()
+# plt.show()

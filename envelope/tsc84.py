@@ -1,5 +1,6 @@
 from scipy.integrate import odeint, ode
 from scipy.special import legendre
+from numpy.polynomial import Polynomial
 import numpy as np
 import sys
 
@@ -9,21 +10,28 @@ from parameter import param
 param = param()
 
 class tsc():
-    # EOM for Terebey, Shu, Cassen (1984)
-    #   z_g1, z_s1              : the radius coordinate to calculate upon, in z=1/x
-    #   a_shu_s1                : the Shu (1977) solution for density a0 (array)
-    #   v_shu_s1                : the Shu (1977) solution for velocity v0 (array)
-    #   store_dadz, store_dvdz  : dadz and dvdz from Shu (1977) calculation
-    #   cs ([cm/s]) : sound speed given by S77 to bring dimensionless solution back with dimension
-    #   time ([s])  : time is provided to bring dimensionless solution back with dimension
-    def __init__(self, z_g1, z_s1, a_shu_s1, a_shu_g1, v_shu_s1, store_dadz, store_dvdz, cs=0.2*1e5, time=[1e12, 2e12, 4e12, 8e12]):
+    def __init__(self, z_g1, z_s1, a_shu_s1, a_shu_g1, v_shu_s1, v_shu_g1, store_dadz, store_dvdz, cs=0.2*1e5, time=[1e12, 2e12, 4e12, 8e12]):
+        """
+        EOM for Terebey, Shu, Cassen (1984)
+
+        Args:
+            z_g1, z_s1              : the radius coordinate to calculate upon, in z=1/x
+            a_shu_s1                : the Shu (1977) solution for density a0 (array)
+            v_shu_s1                : the Shu (1977) solution for velocity v0 (array)
+            store_dadz, store_dvdz  : dadz and dvdz from Shu (1977) calculation
+            cs                      : sound speed given by S77 to bring dimensionless solution back with dimension      ([cm/s]) 
+            time                    : time is provided to bring dimensionless solution back with dimension              ([s])
+        """
+        self.z_g1       = z_g1
+        self.z_s1       = z_s1
+        self.a_shu_s1   = a_shu_s1
+        self.a_shu_g1   = a_shu_g1
+        self.v_shu_s1   = v_shu_s1
+        self.v_shu_g1   = v_shu_g1
+        self.cs         = cs
+        self.time       = time
+        
         # quadrupolar EOM for x>1 
-        self.z_g1 = z_g1
-        self.z_s1 = z_s1
-        self.a_shu_s1 = a_shu_s1
-        self.a_shu_g1 = a_shu_g1
-        self.cs = cs
-        self.time = time
         def quadrupolar_greater1_ode(param, z):
             a = param[0]
             v = param[1]
@@ -219,82 +227,240 @@ class tsc():
     def get_mono_v_s1(self):
         return self.v_mono_s1
     
-    def get_cgs_density_g1(self, theta, tau=1e-3):
-        # for omega=1e-14, tau^2=1e-3
+    def get_cgs_v_r_g1(self, tau=1e-3):
+        leg = legendre(2)
+        
+        v_2 = []
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            v_2_theta = []
+            for i in range(len(self.v_g)):
+                v_2_theta_i = self.v_mono_g[i] + self.v_g[i]*leg(np.cos(theta))
+                v_2_theta.append(v_2_theta_i)
+            v_2.append(v_2_theta)
+            
+        v_r = []
+        for i in range(len(v_2)):
+            v_j = []
+            for j in range(len(v_2[i])):
+                v_i = self.v_shu_g1[j] + tau*v_2[i][j]
+                v_j.append(v_i)
+            v_r.append(v_j)
+
+        vel_rad = []
+        for t in self.time:
+            vel_rad.append([])
+            for i in range(len(v_r)):
+                vel_rad[-1].append([self.cs*j for j in v_r[i]])
+        
+        return vel_rad
+    
+    def get_cgs_v_r_s1(self, tau=1e-3):
+        leg = legendre(2)
+        
+        v_2 = []
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            v_2_theta = []
+            for i in range(len(self.v_g)):
+                v_2_theta_i = self.v_mono_s1[i] + self.v_s[i]*leg(np.cos(theta))
+                v_2_theta.append(v_2_theta_i)
+            v_2.append(v_2_theta)
+            
+        v_r = []
+        for i in range(len(v_2)):
+            v_j = []
+            for j in range(len(v_2[i])):
+                v_i = self.v_shu_s1[j] + tau*v_2[i][j]
+                v_j.append(v_i)
+            v_r.append(v_j)
+
+        vel_rad = []
+        for t in self.time:
+            vel_rad.append([])
+            for i in range(len(v_r)):
+                vel_rad[-1].append([self.cs*j for j in v_r[i]])
+        
+        return vel_rad
+
+    def get_cgs_v_theta_g1(self, tau=1e-3):
+        leg = legendre(2)
+        leg_poly = Polynomial(leg)
+        dev_leg_poly = leg_poly.deriv()
+
+        w_2 = []
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            w_2_theta = []
+            for i in range(len(self.w_g)):
+                w_2_theta_i = self.w_g[i] * (-dev_leg_poly(np.cos(theta))*np.sin(theta))
+                w_2_theta.append(w_2_theta_i)
+            w_2.append(w_2_theta)
+        
+        v_theta = []
+        for i in range(len(w_2)):
+            w_j = []
+            for j in range(len(w_2[i])):
+                w_i = tau*w_2[i][j]
+                w_j.append(w_i)
+            v_theta.append(w_j)
+
+        vel_theta = []
+        for t in self.time:
+            vel_theta.append([])
+            for i in range(len(v_theta)):
+                vel_theta[-1].append([self.cs*j for j in v_theta[i]])
+        
+        return vel_theta
+    
+    def get_cgs_v_theta_s1(self, tau=1e-3):
+        leg = legendre(2)
+        leg_poly = Polynomial(leg)
+        dev_leg_poly = leg_poly.deriv()
+
+        w_2 = []
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            w_2_theta = []
+            for i in range(len(self.w_s)):
+                w_2_theta_i = self.w_s[i] * (-dev_leg_poly(np.cos(theta))*np.sin(theta))
+                w_2_theta.append(w_2_theta_i)
+            w_2.append(w_2_theta)
+        
+        v_theta = []
+        for i in range(len(w_2)):
+            w_j = []
+            for j in range(len(w_2[i])):
+                w_i = tau*w_2[i][j]
+                w_j.append(w_i)
+            v_theta.append(w_j)
+
+        vel_theta = []
+        for t in self.time:
+            vel_theta.append([])
+            for i in range(len(v_theta)):
+                vel_theta[-1].append([self.cs*j for j in v_theta[i]])
+        
+        return vel_theta
+    
+    # def get_cgs_phi(self):
+    
+    def get_cgs_density_g1(self, tau=1e-3):
+        # [time][theta]
+        # for omega=1e-14 -> tau^2=1e-3
         a_2 = []
         leg = legendre(2)
 
-        for i in range(len(self.a_g)):
-            a_2_i = self.a_mono_g[i] + self.a_g[i]*leg(np.cos(theta))
-            a_2.append(a_2_i)
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            a_2_theta = []
+            for i in range(len(self.a_g)):
+                a_2_theta_i = self.a_mono_g[i] + self.a_g[i]*leg(np.cos(theta))
+                a_2_theta.append(a_2_theta_i)
+            a_2.append(a_2_theta)
         
         rho = []
         for i in range(len(a_2)):
-            rho_i = self.a_shu_g1[i] + tau*a_2[i]
-            rho.append(rho_i)
+            rho_j = []
+            for j in range(len(a_2[i])):
+                rho_i = self.a_shu_g1[j] + tau*a_2[i][j]
+                rho_j.append(rho_i)
+            rho.append(rho_j)
 
         density = []
         for t in self.time:
-            density.append([(i/(4*np.pi*param.G*t**2)) for i in rho])
+            density.append([])
+            for i in range(len(rho)):
+                density[-1].append([(j/(4*np.pi*param.G*t**2)) for j in rho[i]])
 
         return density
     
-    def get_nh_density_g1(self, theta, tau=1e-3):
-        # for omega=1e-14, tau^2=1e-3
+    def get_cgs_density_s1(self, tau=1e-3):
+        # [time][theta]
+        # for omega=1e-14 -> tau^2=1e-3
         a_2 = []
         leg = legendre(2)
 
-        for i in range(len(self.a_g)):
-            a_2_i = self.a_mono_g[i] + self.a_g[i]*leg(np.cos(theta))
-            a_2.append(a_2_i)
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            a_2_theta = []
+            for i in range(len(self.a_s)):
+                a_2_theta_i = self.a_mono_s1[i] + self.a_s[i]*leg(np.cos(theta))
+                a_2_theta.append(a_2_theta_i)
+            a_2.append(a_2_theta)
         
         rho = []
         for i in range(len(a_2)):
-            rho_i = self.a_shu_g1[i] + tau*a_2[i]
-            rho.append(rho_i)
+            rho_j = []
+            for j in range(len(a_2[i])):
+                rho_i = self.a_shu_s1[j] + tau*a_2[i][j]
+                rho_j.append(rho_i)
+            rho.append(rho_j)
 
         density = []
         for t in self.time:
-            density.append([(i/(4*np.pi*param.G*t**2))/param.M_H for i in rho])
-
-        return density
-
-    def get_cgs_density_s1(self, theta, tau=1e-3):
-        # for omega=1e-14, tau=1e-3
-        a_2 = []
-        leg = legendre(2)
-
-        for i in range(len(self.a_s)):
-            a_2_i = self.a_mono_s1[i] + self.a_s[i]*leg(np.cos(theta))
-            a_2.append(a_2_i)
-        
-        rho = []
-        for i in range(len(a_2)):
-            rho_i = self.a_shu_s1[i] + tau*a_2[i]
-            rho.append(rho_i)
-
-        density = []
-        for t in self.time:
-            density.append([(i/(4*np.pi*param.G*t**2)) for i in rho])
+            density.append([])
+            for i in range(len(rho)):
+                density[-1].append([(j/(4*np.pi*param.G*t**2)) for j in rho[i]])
 
         return density
     
-    def get_nh_density_s1(self, theta, tau=1e-3):
-        # for omega=1e-14, tau=1e-3
+    def get_nh_density_g1(self, tau=1e-3):
+        # [time][theta]
+        # for omega=1e-14 -> tau^2=1e-3
         a_2 = []
         leg = legendre(2)
 
-        for i in range(len(self.a_s)):
-            a_2_i = self.a_mono_s1[i] + self.a_s[i]*leg(np.cos(theta))
-            a_2.append(a_2_i)
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            a_2_theta = []
+            for i in range(len(self.a_g)):
+                a_2_theta_i = self.a_mono_g[i] + self.a_g[i]*leg(np.cos(theta))
+                a_2_theta.append(a_2_theta_i)
+            a_2.append(a_2_theta)
         
         rho = []
         for i in range(len(a_2)):
-            rho_i = self.a_shu_s1[i] + tau*a_2[i]
-            rho.append(rho_i)
+            rho_j = []
+            for j in range(len(a_2[i])):
+                rho_i = self.a_shu_g1[j] + tau*a_2[i][j]
+                rho_j.append(rho_i)
+            rho.append(rho_j)
 
         density = []
         for t in self.time:
-            density.append([(i/(4*np.pi*param.G*t**2))/param.M_H for i in rho])
+            density.append([])
+            for i in range(len(rho)):
+                density[-1].append([(j/(4*np.pi*param.G*t**2))/param.M_H for j in rho[i]])
+
+        return density
+    
+    def get_nh_density_s1(self, tau=1e-3):
+        # [time][theta]
+        # for omega=1e-14 -> tau^2=1e-3
+        a_2 = []
+        leg = legendre(2)
+
+        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        for theta in range(len(theta_range)):
+            a_2_theta = []
+            for i in range(len(self.a_s)):
+                a_2_theta_i = self.a_mono_s1[i] + self.a_s[i]*leg(np.cos(theta))
+                a_2_theta.append(a_2_theta_i)
+            a_2.append(a_2_theta)
+        
+        rho = []
+        for i in range(len(a_2)):
+            rho_j = []
+            for j in range(len(a_2[i])):
+                rho_i = self.a_shu_s1[j] + tau*a_2[i][j]
+                rho_j.append(rho_i)
+            rho.append(rho_j)
+
+        density = []
+        for t in self.time:
+            density.append([])
+            for i in range(len(rho)):
+                density[-1].append([(j/(4*np.pi*param.G*t**2))/param.M_H for j in rho[i]])
 
         return density

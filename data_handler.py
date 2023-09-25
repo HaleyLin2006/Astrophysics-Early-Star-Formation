@@ -1,19 +1,6 @@
 import pandas as pd
 import numpy as np
 
-# data_dict={"param": [1, 2, 3, [4,5,6]],
-#                         "model"  :   "Shu",
-#                         "radius" :   [[1,2,3], [1,2,3]],
-#                         "density":   [],
-#                         "v_r"    :   [],
-#                         "v_theta":   [],
-#                         "v_phi"  :   []}
-
-# mid_term_marks_df = pd.DataFrame(data_dict)
-# mid_term_marks_df.to_csv("midterm.csv")
-# print(mid_term_marks_df)
-df = pd.read_csv("data.csv")
-
 class data():
     def __init__(self):
         self.df = pd.read_csv("data.csv")
@@ -47,6 +34,8 @@ class data():
 
         return radius, density, v_r, v_theta, v_phi
     
+    # def delete(self, param=[], model=""):
+    
     def isSaved(self, param=[], model=""):
         """
         Check if the combination of parameter and model have been save enough.
@@ -71,6 +60,6 @@ class data():
                 break
         
         if ifSave == True:
-            print("Data already exist!")
+            print("")
         
         return ifSave

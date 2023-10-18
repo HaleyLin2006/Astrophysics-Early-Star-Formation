@@ -61,5 +61,5 @@ for t in param.time:
     r_grid.append([1/i*param.cs*t for i in z_s1_grid[::-1]]+[1/i*param.cs*t for i in z_g1_grid[::-1]])
 
 # for j in range(len(param.time)):
-# plt.plot(range(2*param.sample_pts), [i for i in r_grid[0]], '--bo', color='red')
+plt.plot(range(2*param.sample_pts), [i for i in r_grid[0]], '--bo', color='red')
 plt.show()

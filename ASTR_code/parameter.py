@@ -22,6 +22,7 @@ class param():
         self.sample_pts     = 1000
         self.sample_range   = 4
         self.theta_pts      = 1000
+        self.min_theta      = 1e-10
 
         #   variable for graph
         self.cgs_contour    = 1e-18

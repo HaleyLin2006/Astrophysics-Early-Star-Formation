@@ -39,6 +39,14 @@ for i in range(param.sample_pts):
         z_s1.append(z_s1_i)
         z_g1.append(z_g1_i)
 
+r = []
+for t in param.time:
+    r.append([1/i*param.cs*t for i in z_s1[::-1]]+[1/i*param.cs*t for i in z_g1[::-1]])
+
+print(r_grid[0][0], r_grid[0][-1])
+print(r[0][0], r[0][-1])
+
+
 #   Envelope
 class shu_graph():
     def __init__(self, save=False):
@@ -541,14 +549,18 @@ class tsc_graph():
         fig.suptitle('TSC (1984) 2D Graph (n_h)')
     
     def int_mass(self):
-        # 2*pi S(rho * r^2)dr
-        for i in range(len(self.time)):
-            for j in range(len(self.radius)):
-                self.radius
-                r_grid
-        
-        return     
+        # times AU for all self.radius
+        radius_AU = [[value * param.AU for value in row] for row in self.radius]
 
+        # 2 * 2*pi S(rho * r^2)dr
+        for i in range(len(param.time)):
+            r_grid[i].insert(0, 0)
+            for j in range(len(radius_AU[i])):
+                if i==0 and j%50==0:
+                    print(r_grid[i][j], radius_AU[i][j], r_grid[i][j+1])
+        
+            r_grid[i].pop(0)
+        
 ########## Shu (1977) Graph ##########
 # s = shu_graph(save=True)
 # s.dimensionless_a_v_1d()
@@ -565,9 +577,10 @@ t = tsc_graph(save=False)
 # t.cgs_density_1d()
 # t.nh_density_1d()
 # t.cgs_density_2d()
-# t.int_mass()
-t.nh_density_2d()
+# t.nh_density_2d()
+t.int_mass()
+
 
 plt.xscale('log')
 plt.yscale('log')
-plt.show()
+# plt.show()

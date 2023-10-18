@@ -231,7 +231,7 @@ class tsc():
         leg = legendre(2)
         
         v_2 = []
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             v_2_theta = []
             for i in range(len(self.v_g)):
@@ -259,7 +259,7 @@ class tsc():
         leg = legendre(2)
         
         v_2 = []
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             v_2_theta = []
             for i in range(len(self.v_g)):
@@ -289,7 +289,7 @@ class tsc():
         dev_leg_poly = leg_poly.deriv()
 
         w_2 = []
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             w_2_theta = []
             for i in range(len(self.w_g)):
@@ -319,7 +319,7 @@ class tsc():
         dev_leg_poly = leg_poly.deriv()
 
         w_2 = []
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             w_2_theta = []
             for i in range(len(self.w_s)):
@@ -353,7 +353,7 @@ class tsc():
             m0.append(x[i]**2 * a0[i] * (x[i]-v0[i]))
 
         sigma_2 = []
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             sigma_2_theta = []
             for i in range(len(m0)):
@@ -391,7 +391,7 @@ class tsc():
         a_2 = []
         leg = legendre(2)
 
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             a_2_theta = []
             for i in range(len(self.a_g)):
@@ -421,7 +421,7 @@ class tsc():
         a_2 = []
         leg = legendre(2)
 
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             a_2_theta = []
             for i in range(len(self.a_s)):
@@ -451,7 +451,7 @@ class tsc():
         a_2 = []
         leg = legendre(2)
 
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             a_2_theta = []
             for i in range(len(self.a_g)):
@@ -481,7 +481,7 @@ class tsc():
         a_2 = []
         leg = legendre(2)
 
-        theta_range = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_range = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
         for theta in range(len(theta_range)):
             a_2_theta = []
             for i in range(len(self.a_s)):

@@ -53,7 +53,7 @@ from parameter import param
 
 param = param()
 
-param.sample_pts = 50
+param.sample_pts = 1000
 
 z_g1_grid = [2/(i+1) for i in np.logspace(param.sample_range, 0, param.sample_pts)]  # also x_s1
 z_s1_grid = np.logspace(0, param.sample_range, param.sample_pts).tolist()
@@ -117,11 +117,11 @@ for i in range(len(param.time)):
             r_grid_temp[-1].append(2*radius_AU[i][j]-r_grid[i][j])
 
             # print(j, r_grid[i][j], radius_AU[i][j], 2*radius_AU[i][j]-r_grid[i][j])
-            
+
             # unit test
-            if radius_AU[i][j]-r_grid[i][j] < 0 or 2*radius_AU[i][j]-radius_AU[i][j]<0:
-                print(j, 'ERRORRRRR')
-                print(j, r_grid[i][j], radius_AU[i][j], 2*radius_AU[i][j]-r_grid[i][j])
+            # if radius_AU[i][j]-r_grid[i][j] < 0 or 2*radius_AU[i][j]-radius_AU[i][j]<0:
+            #     print(j, 'ERRORRRRR')
+            #     print(j, r_grid[i][j], radius_AU[i][j], 2*radius_AU[i][j]-r_grid[i][j])
 
         # avoid the inconsistnecy at x=1
         elif j+1 == param.sample_pts:
@@ -131,8 +131,8 @@ for i in range(len(param.time)):
             # print(j, r_grid[i][j], (r_grid[i][j]+r_grid[i][j+2])/2, r_grid[i][j+2])
 
             # unit test
-            if radius_AU[i][j]-r_grid[i][j] < 0 or r_grid[i][j+2]-(r_grid[i][j]+r_grid[i][j+2])/2<0:
-                print(j, 'ERRORRRRR')
+            # if radius_AU[i][j]-r_grid[i][j] < 0 or r_grid[i][j+2]-(r_grid[i][j]+r_grid[i][j+2])/2<0:
+            #     print(j, 'ERRORRRRR')
 
         elif j == param.sample_pts:
             continue
@@ -144,14 +144,18 @@ for i in range(len(param.time)):
             # print(j, r_grid[i][j], radius_AU[i][j], r_grid[i][j+1])
 
             # unit test
-            if radius_AU[i][j]-r_grid[i][j] < 0 or r_grid[i][j+1]-radius_AU[i][j]<0:
-                print(j, 'ERRORRRRR')
-                print(j, r_grid[i][j], radius_AU[i][j], r_grid[i][j+1])
-                for k in range(1, 11):
-                    print(j+k, r_grid[i][j+k])
+            # if radius_AU[i][j]-r_grid[i][j] < 0 or r_grid[i][j+1]-radius_AU[i][j]<0:
+            #     print(j, 'ERRORRRRR')
+            #     print(j, r_grid[i][j], radius_AU[i][j], r_grid[i][j+1])
+            #     for k in range(1, 11):
+            #         print(j+k, r_grid[i][j+k])
     
 radius_AU = radius_AU_temp
 r_grid = r_grid_temp
+
+print(len(radius_AU[1]))
+print(len(r_grid[1]))
+
 
 # unit test
 for i in range(len(param.time)):
@@ -165,11 +169,30 @@ for i in range(len(param.time)):
                 print(j+k, r_grid[i][j+k])
 
 
+def find_closest_index(arr, target):
+    closest_index = 0
+    closest_difference = abs(arr[0] - target)
+
+    for i in range(1, len(arr)):
+        difference = abs(arr[i] - target)
+        if difference < closest_difference:
+            closest_index = i
+            closest_difference = difference
+
+    return closest_index
+
+my_array = [1, 4, 7, 10, 13, 16]
+target_value = 9
+
+closest_index = find_closest_index(my_array, target_value)
+print(f"The index of the closest value to {target_value} is {closest_index}.")
+
+
 # for j in range(len(param.time)):
-# plt.plot([i for i in r_grid[0]], range(2*param.sample_pts), '--bo', color='red')
-# plt.plot([i for i in r[0]], range(2*param.sample_pts), '--bo', color='blue')
+plt.plot([i for i in r_grid[0]], '--bo', color='red')
+plt.plot([i for i in r[0]], '--bo', color='blue')
 
-# plt.xscale('log')
+plt.yscale('log')
 
 
-# plt.show()
+plt.show()

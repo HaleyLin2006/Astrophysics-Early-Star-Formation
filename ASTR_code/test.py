@@ -181,18 +181,21 @@ def find_closest_index(arr, target):
 
     return closest_index
 
-my_array = [1, 4, 7, 10, 13, 16]
-target_value = 9
+# my_array = [1, 4, 7, 10, 13, 16]
+# target_value = 9
 
-closest_index = find_closest_index(my_array, target_value)
-print(f"The index of the closest value to {target_value} is {closest_index}.")
+# closest_index = find_closest_index(my_array, target_value)
+# print(f"The index of the closest value to {target_value} is {closest_index}.")
+
+theta_values = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
+theta_values 
 
 
 # for j in range(len(param.time)):
-plt.plot([i for i in r_grid[0]], '--bo', color='red')
-plt.plot([i for i in r[0]], '--bo', color='blue')
+# plt.plot([i for i in r_grid[0]], '--bo', color='red')
+# plt.plot([i for i in r[0]], '--bo', color='blue')
 
 plt.yscale('log')
 
 
-plt.show()
+# plt.show()

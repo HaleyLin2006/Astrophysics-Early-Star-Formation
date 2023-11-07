@@ -3,6 +3,7 @@ import matplotlib.patches as patches
 from matplotlib.colors import LogNorm
 from scipy.interpolate import griddata
 import numpy as np
+import os
 
 from envelope.shu77 import shu
 from envelope.tsc84 import tsc
@@ -11,8 +12,6 @@ from parameter import param
 
 # TODO: save data using npz
 #       -> create folder for each different param + a csv record param
-# TODO: sphinx
-
 # TODO: integrate and check total mass
 
 param = param()
@@ -38,20 +37,13 @@ class shu_graph():
         self.r_grid = r_grid
         self.save = save
 
-        data_param = [param.cs, param.t_acc, param.omega, param.time]
-        if data.isSaved(param=data_param, model="Shu") == True:
-            self.radius_str, self.nh_density_str, self.v_r_str, self.v_theta_str, self.v_phi_str = data.load(param=data_param, model="Shu")
-            
-            # print(len(self.radius), len(self.radius[0]))
-            self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
-            self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('|')]
-            self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('|')]
+        self.data_param = ["Shu", param.cs, param.omega, len(param.time), param.sample_pts, param.theta_pts]
 
-            print(len(self.radius), len(self.radius[0]))
-            print(len(self.nh_density), len(self.nh_density[0]))
-            print("Loading Successfully!")
+        if os.path.exists(data._get_directory(self.data_param)):
+            print('Loading data...')
+            self.radius, self.r_grid, self.nh_density, self.v_r, self.v_theta, self.v_phi = data.load(self.data_param)
 
-        if data.isSaved(param=data_param, model="Shu") == False:
+        else:
             # Create a Shu instance with specified parameters
             self.shu = shu(z_g1=z_g1, z_s1=z_s1, cs=param.cs, time=param.time)
 
@@ -79,27 +71,17 @@ class shu_graph():
                 self.nh_density.append(self.nh_density_s1[i][::-1]+self.nh_density_g1[i][::-1])
                 self.v_r.append([param.cs*j for j in self.v_shu_s1][::-1]+[param.cs*j for j in self.v_shu_g1][::-1])
 
-            if save == True and data.isSaved(param=data_param, model="Shu") == False:
+            if self.save == True:
+                data.save(param=self.data_param, radius=self.radius, r_grid=self.r_grid, density=self.nh_density, v_r=self.v_r)
+                print('Successfully stored data')
 
-                self.radius_str     = '|'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
-                self.nh_density_str = '|'.join('\t'.join(map(str, sublist)) for sublist in self.nh_density)
-                self.v_r_str        = '|'.join('\t'.join(map(str, sublist)) for sublist in self.v_r)
-
-                data.save(param=data_param, model="Shu", radius=self.radius_str, density=self.nh_density_str, v_r=self.v_r_str)
-    
-                self.radius     = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
-                self.nh_density = [list(map(float, line.split('\t'))) for line in self.nh_density_str.split('|')]
-                self.v_r        = [list(map(float, line.split('\t'))) for line in self.v_r_str.split('|')]
-
-                print(len(self.radius), len(self.radius[0]))
-                print(len(self.nh_density), len(self.nh_density[0]))
 
     def dimensionless_a_v_1d(self):
         """
         Plot the dimensionless density and velocity profiles in 1D,
         against the radius (1/z).
         """
-        if self.save == True:
+        if os.path.exists(data._get_directory(self.data_param)):
             self.shu = shu(z_g1=self.z_g1, z_s1=self.z_s1, cs=param.cs, time=param.time)
 
         self.a_shu_s1   = self.shu.get_a_s1()
@@ -244,26 +226,16 @@ class tsc_graph():
         self.r_grid = r_grid
         self.save = save
 
-        data_param = [param.cs, param.t_acc, param.omega, param.time]
-        if data.isSaved(param=data_param, model="TSC") == True:
-            self.radius_str, self.nh_density_str, self.v_r_str, self.v_theta_str, self.v_phi_str = data.load(param=data_param, model="TSC")
+        self.inner_edge     = [(param.omega*t)**2* param.cs*t/param.AU for t in param.time]
+        self.outer_edge     = [1/(param.omega*t) * param.cs*t/param.AU for t in param.time]
 
-            # Convert the string back to a nested list
-            self.radius         = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
-            self.nh_density     = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.nh_density_str.split('|')]
-            self.cgs_v_r        = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.v_r_str.split('|')]
-            self.cgs_v_theta    = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.v_theta_str.split('|')]
-            self.cgs_v_phi      = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.v_phi_str.split('|')]
-            
-            print("radius",     len(self.radius),       len(self.radius[0]))
-            print("density",    len(self.nh_density),   len(self.nh_density[0]))
-            print("v_r",        len(self.cgs_v_r),      len(self.cgs_v_r[0]))
-            print("v_theta",    len(self.cgs_v_theta),  len(self.cgs_v_theta[0]))
-            print("v_phi",      len(self.cgs_v_phi),    len(self.cgs_v_phi[0]))
-            
-            print("Loading Successfully!")
-        
-        if data.isSaved(param=data_param, model="TSC") == False:
+        self.data_param = ["TSC", param.cs, param.omega, len(param.time), param.sample_pts, param.theta_pts]
+
+        if os.path.exists(data._get_directory(self.data_param)):
+            print('Loading data...')
+            self.radius, self.r_grid, self.nh_density, self.cgs_v_r, self.cgs_v_theta, self.cgs_v_phi = data.load(self.data_param)
+
+        else:
             # Create Shu and TSC instances with specified parameters
             self.shu = shu(z_g1=self.z_g1, z_s1=self.z_s1, cs=param.cs, time=param.time)
             self.tsc = tsc(z_g1=self.z_g1, z_s1=self.z_s1, a_shu_s1=self.shu.get_a_s1(), a_shu_g1=self.shu.get_a_g1(), 
@@ -272,20 +244,25 @@ class tsc_graph():
                             cs=param.cs, time=param.time)
 
             # Initialize dimension variables
+            print("Initializing...")
+            print("Initializing radius")
             self.radius_s1      = self.tsc.get_r_s1()
             self.radius_g1      = self.tsc.get_r_g1()
 
+            print("Initializing density")
             self.cgs_density_s1 = self.tsc.get_cgs_density_s1()
             self.cgs_density_g1 = self.tsc.get_cgs_density_g1()
             self.nh_density_s1  = self.tsc.get_nh_density_s1()
             self.nh_density_g1  = self.tsc.get_nh_density_g1()
 
+            print("Initializing cgs velocity")
             self.cgs_v_r_s1     = self.tsc.get_cgs_v_r_s1()
             self.cgs_v_r_g1     = self.tsc.get_cgs_v_r_g1()
             self.cgs_v_theta_s1 = self.tsc.get_cgs_v_theta_s1()
             self.cgs_v_theta_g1 = self.tsc.get_cgs_v_theta_g1()
             self.cgs_v_phi      = self.tsc.get_cgs_v_phi()
 
+            print("Initializing a, v, w")
             self.quad_a_g1      = self.tsc.get_quad_a_g1()
             self.quad_a_s1      = self.tsc.get_quad_a_s1()
             self.quad_v_g1      = self.tsc.get_quad_v_g1()
@@ -296,11 +273,8 @@ class tsc_graph():
             self.mono_a_s1      = self.tsc.get_mono_a_s1()
             self.mono_v_s1      = self.tsc.get_mono_v_s1()
 
-            self.inner_edge     = [(param.omega*t)**2* param.cs*t/param.AU for t in param.time]
-            self.outer_edge     = [1/(param.omega*t) * param.cs*t/param.AU for t in param.time]
-            print(param.omega*param.M*param.G/0.975/param.cs**3)
-            print([param.omega*t for t in param.time])
-            print(self.outer_edge)
+            # print(param.omega*param.M*param.G/0.975/param.cs**3)
+            # print([param.omega*t for t in param.time])
 
             self.radius         = []
             self.nh_density     = []
@@ -327,67 +301,69 @@ class tsc_graph():
             print("v_r",        len(self.cgs_v_r),      len(self.cgs_v_r[0][0]))            # [time][theta][radius]
             print("v_theta",    len(self.cgs_v_theta),  len(self.cgs_v_theta[0][0]))        # [time][theta][radius]
             print("v_phi",      len(self.cgs_v_phi),    len(self.cgs_v_phi[0]))             # [time][theta]
-            
-            if save == True and data.isSaved(param=data_param, model="TSC") == False:
-                
-                self.radius_str         = '|'.join('\t'.join(map(str, sublist)) for sublist in self.radius)
-                self.nh_density_str     = '|'.join(';'.join('\t'.join(map(str, inner_list)) for inner_list in middle_list) for middle_list in self.nh_density)
-                self.cgs_v_r_str        = '|'.join(';'.join('\t'.join(map(str, inner_list)) for inner_list in middle_list) for middle_list in self.cgs_v_r)
-                self.cgs_v_theta_str    = '|'.join(';'.join('\t'.join(map(str, inner_list)) for inner_list in middle_list) for middle_list in self.cgs_v_theta)
-                self.cgs_v_phi_str      = '|'.join(';'.join('\t'.join(map(str, inner_list)) for inner_list in middle_list) for middle_list in self.cgs_v_phi)
 
-                data.save(param=data_param, model="TSC", radius=self.radius_str, density=self.nh_density_str, 
-                          v_r=self.cgs_v_r_str, v_theta=self.cgs_v_theta_str, v_phi=self.cgs_v_phi_str)
-                print("Saving Successfully!")
-
-                self.radius         = [list(map(float, line.split('\t'))) for line in self.radius_str.split('|')]
-                self.nh_density     = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.nh_density_str.split('|')]
-                self.cgs_v_r        = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.cgs_v_r_str.split('|')]
-                self.cgs_v_theta    = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.cgs_v_theta_str.split('|')]
-                self.cgs_v_phi      = [[[float(num) for num in sublist.split('\t')] for sublist in part.split(';')] for part in self.cgs_v_phi_str.split('|')]
-
-                print("radius",     len(self.radius),       len(self.radius[0]))
-                print("density",    len(self.nh_density),   len(self.nh_density[0][0]))
-                print("v_r",        len(self.cgs_v_r),      len(self.cgs_v_r[0][0]))
-                print("v_theta",    len(self.cgs_v_theta),  len(self.cgs_v_theta[0][0]))
-                print("v_phi",      len(self.cgs_v_phi),    len(self.cgs_v_phi[0][0]))
+            if self.save == True:
+                data.save(param=self.data_param, radius=self.radius, r_grid=self.r_grid, density=self.nh_density, 
+                          v_r=self.cgs_v_r, v_theta=self.cgs_v_theta, v_phi=self.cgs_v_phi)
+                print('Successfully stored data')
        
     def dimensionless_a_1d(self):
         """
         Plot the dimensionless density profiles in 1D against radius (1/z).
         """
+        if os.path.exists(data._get_directory(self.data_param)):
+            self.shu = shu(z_g1=self.z_g1, z_s1=self.z_s1, cs=param.cs, time=param.time)
+            self.tsc = tsc(z_g1=self.z_g1, z_s1=self.z_s1, a_shu_s1=self.shu.get_a_s1(), a_shu_g1=self.shu.get_a_g1(), 
+                            v_shu_s1=self.shu.get_v_s1(), v_shu_g1=self.shu.get_v_g1(),
+                            store_dadz=self.shu.get_dadz(), store_dvdz=self.shu.get_dvdz(),
+                            cs=param.cs, time=param.time)
+        
         # Plot Shu acceleration profiles
         plt.plot([1/i for i in self.z_g1], [i for i in self.shu.get_a_g1()], color='orange', label='a shu', linewidth=2)
         plt.plot([1/i for i in self.z_s1], [i for i in self.shu.get_a_s1()], color='orange', linewidth=2)
         
         # Plot quadrupolar acceleration profiles
-        plt.plot([1/i for i in self.z_g1], [i for i in self.quad_a_g1], label=r"$-\alpha_Q$", color='red', linewidth=2)
-        plt.plot([1/i for i in self.z_s1], [abs(i) for i in self.quad_a_s1], color='red', linewidth=2)                 
+        plt.plot([1/i for i in self.z_g1], [i for i in self.tsc.get_quad_a_g1()], label=r"$-\alpha_Q$", color='red', linewidth=2)
+        plt.plot([1/i for i in self.z_s1], [abs(i) for i in self.tsc.get_quad_a_s1()], color='red', linewidth=2)                 
         
         # Plot monopolar acceleration profiles
-        plt.plot([1/i for i in self.z_g1], [i for i in self.mono_a_g1], label=r"$a_m$", color='blue', linewidth=2)
-        plt.plot([1/i for i in self.z_s1], [i for i in self.mono_a_s1], color='blue', linewidth=2)
+        plt.plot([1/i for i in self.z_g1], [i for i in self.tsc.get_mono_a_g1()], label=r"$a_m$", color='blue', linewidth=2)
+        plt.plot([1/i for i in self.z_s1], [i for i in self.tsc.get_mono_a_s1()], color='blue', linewidth=2)
     
     def dimensionless_quad_v_w_1d(self):
         """
         Plot dimensionless quadrupolar velocity in theta and phi 
         direction profiles in 1D against radius (1/z).
         """
+        if os.path.exists(data._get_directory(self.data_param)):
+            self.shu = shu(z_g1=self.z_g1, z_s1=self.z_s1, cs=param.cs, time=param.time)
+            self.tsc = tsc(z_g1=self.z_g1, z_s1=self.z_s1, a_shu_s1=self.shu.get_a_s1(), a_shu_g1=self.shu.get_a_g1(), 
+                            v_shu_s1=self.shu.get_v_s1(), v_shu_g1=self.shu.get_v_g1(),
+                            store_dadz=self.shu.get_dadz(), store_dvdz=self.shu.get_dvdz(),
+                            cs=param.cs, time=param.time)
+        
         # Plot quadrupolar velocity profiles
-        plt.plot([1/i for i in self.z_g1], [i for i in self.quad_v_g1], label=r"$v_Q$", color='blue', linewidth=2)
-        plt.plot([1/i for i in self.z_s1], [i for i in self.quad_v_s1], color='blue', linewidth=2)       
+        plt.plot([1/i for i in self.z_g1], [i for i in self.tsc.get_quad_v_g1()], label=r"$v_Q$", color='blue', linewidth=2)
+        plt.plot([1/i for i in self.z_s1], [i for i in  self.tsc.get_quad_v_s1()], color='blue', linewidth=2)       
         
         # Plot quadrupolar angular velocity profiles
-        plt.plot([1/i for i in self.z_g1], [i for i in self.quad_w_g1], label=r"$-w_Q$", color='green', linewidth=2)
-        plt.plot([1/i for i in self.z_s1], [-i for i in self.quad_w_s1], color='green', linewidth=2)
+        plt.plot([1/i for i in self.z_g1], [i for i in self.tsc.get_quad_w_g1()], label=r"$-w_Q$", color='green', linewidth=2)
+        plt.plot([1/i for i in self.z_s1], [-i for i in self.tsc.get_quad_w_s1()], color='green', linewidth=2)
 
     def dimensionless_mono_v_1d(self):
         """
         Plot dimensionless monopolar velocity profiles in 1D against radius (1/z).
         """
+        if os.path.exists(data._get_directory(self.data_param)):
+            self.shu = shu(z_g1=self.z_g1, z_s1=self.z_s1, cs=param.cs, time=param.time)
+            self.tsc = tsc(z_g1=self.z_g1, z_s1=self.z_s1, a_shu_s1=self.shu.get_a_s1(), a_shu_g1=self.shu.get_a_g1(), 
+                            v_shu_s1=self.shu.get_v_s1(), v_shu_g1=self.shu.get_v_g1(),
+                            store_dadz=self.shu.get_dadz(), store_dvdz=self.shu.get_dvdz(),
+                            cs=param.cs, time=param.time)
+        
         # Plot Shu and monopolar velocity profiles
         plt.plot([1/i for i in self.z_s1], [-i for i in self.shu.get_v_s1()], color='orange', label='-v shu', linewidth=2)
-        plt.plot([1/i for i in self.z_s1], [i for i in self.mono_v_s1], label=r"$v_m$", linewidth=2)
+        plt.plot([1/i for i in self.z_s1], [i for i in self.tsc.get_mono_v_s1()], label=r"$v_m$", linewidth=2)
 
     def cgs_density_1d(self):
         """
@@ -411,7 +387,7 @@ class tsc_graph():
         fig, axes = plt.subplots(2, 2)
         axes_flat = axes.flatten()
 
-        theta_values = np.linspace(0, 2 * np.pi, param.theta_pts)
+        theta_values = np.linspace(param.min_theta, 2 * np.pi, param.theta_pts)
 
         i = 0
         for i, ax in enumerate(axes_flat):
@@ -470,7 +446,7 @@ class tsc_graph():
         fig, axes = plt.subplots(2, 2)
         axes_flat = axes.flatten()
 
-        theta_values = np.linspace(0, 2*np.pi, param.theta_pts)
+        theta_values = np.linspace(param.min_theta, 2*np.pi, param.theta_pts)
 
         i = 0
         for i, ax in enumerate(axes_flat):
@@ -534,31 +510,19 @@ class tsc_graph():
                 cbar.set_label('Density')
     
         fig.suptitle('TSC (1984) 2D Graph (n_h)')
-
-    def _find_closest_index(self, arr, target):
-        closest_index = 0
-        closest_difference = abs(arr[0] - target)
-
-        for i in range(1, len(arr)):
-            difference = abs(arr[i] - target)
-            if difference < closest_difference:
-                closest_index = i
-                closest_difference = difference
-
-        return closest_index
     
     def int_mass(self):
-        print("integrating...")
+        print("Integrating...")
 
         # times AU for all self.radius
         radius_AU = [[value * param.AU for value in row] for row in self.radius]
         outer_edge = [i*param.AU for i in self.outer_edge]
         inner_edge = [i*param.AU for i in self.inner_edge]
-
-        # 2 * 2*pi S(rho * r^2)dr
+        
+        # 2 * 2*pi S(rho * r^2)dr * (pi/2 /theta pts)
         self.mass = [] 
         for t in range(len(param.time)):
-            print(f"integrating process: {t+1}/{len(param.time)}")
+            print(f"Integrating process: {t+1}/{len(param.time)}")
             mass_t = 0 
 
             for theta in range(param.theta_pts):
@@ -576,6 +540,7 @@ class tsc_graph():
                         if param.M_H*self.nh_density[t][theta][i]>0:
                             mass_t += param.M_H*self.nh_density[t][theta][i] * radius_AU[t][i]**2 * (self.r_grid[t][i+1]-self.r_grid[t][i])
            
-            self.mass.append(4*np.pi*mass_t)
+            self.mass.append(4*np.pi*mass_t * np.pi/2 / param.theta_pts)
 
         print(param.M, self.mass)
+        print(self.inner_edge, self.outer_edge)

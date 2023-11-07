@@ -28,8 +28,8 @@ for i in range(param.sample_pts):
         z_g1.append(z_g1_i)
 z_g1[-1] =1-1e-10
 
-print(z_s1_grid[0], z_s1_grid[-1], z_g1_grid[0], z_g1_grid[-1])
-print(z_s1[0], z_s1[-1], z_g1[0], z_g1[-1])
+# print(z_s1_grid[0], z_s1_grid[-1], z_g1_grid[0], z_g1_grid[-1])
+# print(z_s1[0], z_s1[-1], z_g1[0], z_g1[-1])
 
 r = []
 for t in param.time:
@@ -80,11 +80,11 @@ for i in range(len(param.time)):
             for k in range(1, 6):
                 print(j+k, r_grid[i][j+k])
 
-plt.plot(r_grid[0],'--bo', color='red')
-plt.plot(r[0], '--bo')
+# plt.plot(r_grid[0],'--bo', color='red')
+# plt.plot(r[0], '--bo')
 
 ########## Shu (1977) Graph ##########
-# shu = shu_graph(z_s1=z_s1, z_g1=z_g1, r_grid=r_grid, save=False)
+# shu = shu_graph(z_s1=z_s1, z_g1=z_g1, r_grid=r_grid, save=True)
 # shu.dimensionless_a_v_1d()
 # shu.cgs_density_1d()
 # shu.nh_density_1d()
@@ -92,7 +92,7 @@ plt.plot(r[0], '--bo')
 # shu.nh_density_2d()
 
 ########## TSC (1984) Graph ##########
-# t = tsc_graph(z_s1=z_s1, z_g1=z_g1, r_grid=r_grid, save=False)
+t = tsc_graph(z_s1=z_s1, z_g1=z_g1, r_grid=r_grid, save=True)
 # t.dimensionless_a_1d()
 # t.dimensionless_quad_v_w_1d()
 # t.dimensionless_mono_v_1d()
@@ -100,9 +100,9 @@ plt.plot(r[0], '--bo')
 # t.nh_density_1d()
 # t.cgs_density_2d()
 # t.nh_density_2d()
-# t.int_mass()
+t.int_mass()
 
-# plt.xscale('log')
+plt.xscale('log')
 plt.yscale('log')
 
 plt.show()

@@ -2,6 +2,7 @@ from scipy.integrate import odeint, ode
 from scipy.special import legendre
 from numpy.polynomial import Polynomial
 import numpy as np
+from tqdm import tqdm
 import sys
 
 sys.path.insert(1, '/Users/haleylin/Desktop/astro')
@@ -195,7 +196,7 @@ class tsc():
         
         return r
 
-    ##### Density #####
+    ########## Density ##########
     def get_quad_a_g1(self):
         return self.a_g
     
@@ -208,7 +209,7 @@ class tsc():
     def get_mono_a_s1(self):
         return self.a_mono_s1
     
-    ##### Velocity #####
+    ########## Velocity ##########
     def get_quad_v_g1(self):
         return self.v_g
     
@@ -227,6 +228,8 @@ class tsc():
     def get_mono_v_s1(self):
         return self.v_mono_s1
     
+    #############################
+
     def get_cgs_v_r_g1(self, tau=1e-3):
         leg = legendre(2)
         
@@ -247,11 +250,17 @@ class tsc():
                 v_j.append(v_i)
             v_r.append(v_j)
 
-        vel_rad = []
-        for t in self.time:
-            vel_rad.append([])
+        # vel_rad = []
+        # for t in self.time:
+        #     vel_rad.append([])
+        #     for i in range(len(v_r)):
+        #         vel_rad[-1].append([self.cs*j for j in v_r[i]])
+        vel_rad = np.zeros((len(self.time), len(v_r), len(v_r[0])))
+        for t in tqdm(range(len(self.time)), desc='cgs_v_r_g1'):
             for i in range(len(v_r)):
-                vel_rad[-1].append([self.cs*j for j in v_r[i]])
+                arr = [self.cs*j for j in v_r[i]]
+                for k in range(len(arr)):
+                    vel_rad[t][i][k] = arr[k]
         
         return vel_rad
     
@@ -275,11 +284,16 @@ class tsc():
                 v_j.append(v_i)
             v_r.append(v_j)
 
-        vel_rad = []
-        for t in self.time:
-            vel_rad.append([])
-            for i in range(len(v_r)):
-                vel_rad[-1].append([self.cs*j for j in v_r[i]])
+        # vel_rad = []
+        # for t in self.time:
+        #     vel_rad.append([])
+        #     for i in range(len(v_r)):
+        #         vel_rad[-1].append([self.cs*j for j in v_r[i]])
+        vel_rad = np.zeros((len(self.time), len(v_r), len(v_r[0])))
+        for t in tqdm(range(len(self.time)), desc='cgs_v_r_s1'):
+                arr = [self.cs*j for j in v_r[i]]
+                for k in range(len(arr)):
+                    vel_rad[t][i][k] = arr[k]
         
         return vel_rad
 
@@ -305,11 +319,18 @@ class tsc():
                 w_j.append(w_i)
             v_theta.append(w_j)
 
-        vel_theta = []
-        for t in self.time:
-            vel_theta.append([])
+        vel_theta = np.zeros((len(self.time), len(v_theta), len(v_theta[0])))
+        for t in tqdm(range(len(self.time)), desc='cgs_v_theta_g1'):
             for i in range(len(v_theta)):
-                vel_theta[-1].append([self.cs*j for j in v_theta[i]])
+                arr = [self.cs*j for j in v_theta[i]]
+                for k in range(len(arr)):
+                    vel_theta[t][i][k] = arr[k]
+
+        # vel_theta = []
+        # for t in self.time:
+        #     vel_theta.append([])
+        #     for i in range(len(v_theta)):
+        #         vel_theta[-1].append([self.cs*j for j in v_theta[i]])
         
         return vel_theta
     
@@ -335,11 +356,12 @@ class tsc():
                 w_j.append(w_i)
             v_theta.append(w_j)
 
-        vel_theta = []
-        for t in self.time:
-            vel_theta.append([])
+        vel_theta = np.zeros((len(self.time), len(v_theta), len(v_theta[0])))
+        for t in tqdm(range(len(self.time)), desc='cgs_v_theta_s1'):
             for i in range(len(v_theta)):
-                vel_theta[-1].append([self.cs*j for j in v_theta[i]])
+                arr = [self.cs*j for j in v_theta[i]]
+                for k in range(len(arr)):
+                    vel_theta[t][i][k] = arr[k]
         
         return vel_theta
     
@@ -407,11 +429,12 @@ class tsc():
                 rho_j.append(rho_i)
             rho.append(rho_j)
 
-        density = []
-        for t in self.time:
-            density.append([])
+        density = np.zeros((len(self.time), len(rho), len(rho[0])))
+        for t in tqdm(range(len(self.time)), desc='cgs_density_g1'):
             for i in range(len(rho)):
-                density[-1].append([(j/(4*np.pi*param.G*t**2)) for j in rho[i]])
+                arr = [(j/(4*np.pi*param.G*self.time[t]**2))/param.M_H for j in rho[i]]
+                for k in range(len(arr)):
+                    density[t][i][k] = arr[k]
 
         return density
     
@@ -437,13 +460,19 @@ class tsc():
                 rho_j.append(rho_i)
             rho.append(rho_j)
 
-        density = []
-        for t in self.time:
-            density.append([])
+        density = np.zeros((len(self.time), len(rho), len(rho[0])))
+        for t in tqdm(range(len(self.time)), desc='cgs_density_s1'):
             for i in range(len(rho)):
-                density[-1].append([(j/(4*np.pi*param.G*t**2)) for j in rho[i]])
+                arr = [(j/(4*np.pi*param.G*self.time[t]**2)) for j in rho[i]]
+                for k in range(len(arr)):
+                    density[t][i][k] = arr[k]
 
         return density
+        # density = []
+        # for t in self.time:
+        #     density.append([])
+        #     for i in range(len(rho)):
+        #         density[-1].append([(j/(4*np.pi*param.G*t**2)) for j in rho[i]])
     
     def get_nh_density_g1(self, tau=1e-3):
         # [time][theta]
@@ -467,11 +496,19 @@ class tsc():
                 rho_j.append(rho_i)
             rho.append(rho_j)
 
-        density = []
-        for t in self.time:
-            density.append([])
+        density = np.zeros((len(self.time), len(rho), len(rho[0])))
+        for t in tqdm(range(len(self.time)), desc='nh_density_g1'):
             for i in range(len(rho)):
-                density[-1].append([(j/(4*np.pi*param.G*t**2))/param.M_H for j in rho[i]])
+                arr = [(j/(4*np.pi*param.G*self.time[t]**2))/param.M_H for j in rho[i]]
+                for k in range(len(arr)):
+                    density[t][i][k] = arr[k]
+
+        return density
+        # density = []
+        # for t in self.time:
+        #     density.append([])
+        #     for i in range(len(rho)):
+        #         density[-1].append([(j/(4*np.pi*param.G*t**2))/param.M_H for j in rho[i]])
 
         return density
     
@@ -497,10 +534,14 @@ class tsc():
                 rho_j.append(rho_i)
             rho.append(rho_j)
 
-        density = []
-        for t in self.time:
-            density.append([])
+        density = np.zeros((len(self.time), len(rho), len(rho[0])))
+        for t in tqdm(range(len(self.time)), desc='nh_density_g1'):
             for i in range(len(rho)):
-                density[-1].append([(j/(4*np.pi*param.G*t**2))/param.M_H for j in rho[i]])
+                arr = [(j/(4*np.pi*param.G*self.time[t]**2))/param.M_H for j in rho[i]]
+                for k in range(len(arr)):
+                    density[t][i][k] = arr[k]
 
         return density
+    
+    def get_centrifugal_radius(self):
+        return [1/16 * param.cs * (0.975**3) * t**3 * param.omega**2 for t in param.time]

@@ -16,7 +16,6 @@ from parameter import param
 param = param()
 data = data()
 
-# TODO: make grid first -> change to CM81 and TSC84 grid (z=1/x, r=axt)
 # TODO: Disk mass (done) -> Sigma -> disk boundary -> disk mass (...cycle)
 # TODO: Change 1d disk mass integration to 2D
 
@@ -325,12 +324,12 @@ class tsc_graph():
             self.interp_density = []
             self.interp_v_r     = []
             self.interp_v_theta = []
-            for t in tqdm(range(len(param.time)), desc='Interpolation'):
+            for t in tqdm(range(len(param.time)), desc='Extrapolation'):
                 # original radius 
                 r_values =  np.array([i*param.AU for i in self.radius[t]])      
                 # interpolated radius is r[t]
-                print(r_values[0], r_values[-1])
-                print(r[t][0], r[t][-1])
+                # print(r_values[0], r_values[-1])
+                # print(r[t][0], r[t][-1])
 
                 # 1d extrapolation at the theta direction
                 self.interp_density.append([])
@@ -345,73 +344,9 @@ class tsc_graph():
                     self.interp_v_r[-1].append(f_1d_v_r_interp(r[t]))
                     self.interp_v_theta[-1].append(f_1d_v_theta_interp(r[t]))
 
-                plt.plot(r_values, self.nh_density[t][100], color='blue')
-                print(self.interp_density[t][100])
-                plt.plot(r[t], [abs(i) for i in self.interp_density[t][100]], color='red')
-
-                # Reshape 1d interpolation into 2d
-                
-
-
-
-
-                # # Original radius
-                # r_values =  np.array(self.radius[t])
-                
-                # x_values = []
-                # y_values = []
-                # for j, theta in enumerate(theta_values):
-                #     x_values.extend(r_values * np.cos(theta))
-                #     y_values.extend(r_values * np.sin(theta))
-                # # Create a flattened (x, y) array and corresponding flattened data array
-                # x_flat = np.array(x_values)
-                # y_flat = np.array(y_values)
-
-                # # (x, y) grid we wish to interpolate on
-                # x_grid = r[t]
-                # y_grid = r[t]
-                # xx, yy = np.meshgrid(x_grid, y_grid)
-
-                # print("Org value: x", x_flat[0], x_flat[-1], "y", y_flat[0], y_flat[-1])
-                # print("Interp   : x", x_grid[0], x_grid[-1], "y", y_grid[0], y_grid[-1])
-
-                # # data
-                # density_list = [] 
-                # for theta in range(len(theta_values)):
-                #     density_list.append(self.nh_density[t][theta])
-                # density_flat = np.array(density_list).flatten()
-
-                # v_r_list = []
-                # for theta in range(len(theta_values)):
-                #     v_r_list.append(self.cgs_v_r[t][theta])
-                # v_r_flat = np.array(v_r_list).flatten()
-
-                # v_theta_list = []
-                # for theta in range(len(theta_values)):
-                #     v_theta_list.append(self.cgs_v_theta[t][theta])
-                # v_theta_flat = np.array(v_theta_list).flatten()
-
-                # rf_density = Rbf(x_flat, y_flat, density_flat, epsilon=2)
-                # rf_v_r     = Rbf(x_flat, y_flat, v_r_flat, epsilon=2)
-                # rf_v_theta = Rbf(x_flat, y_flat, v_theta_flat, epsilon=2)
-
-                # density_interp = rf_density(xx, yy)
-                # v_r_interp     = rf_v_r(xx, yy)
-                # v_theta_interp = rf_v_theta(xx, yy)        
-
-                # # print(density_interp.shape, v_r_interp.shape, v_theta_interp.shape)
-
-                # self.interp_density.append(density_interp)
-                # self.interp_v_r.append(v_r_interp)
-                # self.interp_v_theta.append(v_theta_interp)
-
-                # density_interp = griddata((x_flat, y_flat), density_flat, (xx, yy), method='linear')
-                # v_r_interp = griddata((x_flat, y_flat), v_r_flat, (xx, yy), method='linear')
-                # v_theta_interp = griddata((x_flat, y_flat), v_theta_flat, (xx, yy), method='linear')
-
             if self.save == True:
                 print("Saving Data...")
-                data.save(param=self.data_param, radius=r, r_grid=r_grid, density=self.interp_density, 
+                data.save(param=self.data_param, radius=[i/param.AU for i in r], r_grid=r_grid, density=self.interp_density, 
                           v_r=self.interp_v_r, v_theta=self.interp_v_theta, v_phi=self.cgs_v_phi)
                 print('Successfully stored data')
        
@@ -587,9 +522,6 @@ class tsc_graph():
                 y_grid = [j/1e3 for j in self.radius[i]]
                 xx, yy = np.meshgrid(x_grid, y_grid)
 
-                print("Org value: x", x_flat[0], x_flat[-1], "y", y_flat[0], y_flat[-1])
-                print("Interp   : x", x_grid[0], x_grid[-1], "y", y_grid[0], y_grid[-1])
-
                 # Interpolate data onto the (x, y) grid
                 data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
 
@@ -627,11 +559,16 @@ class tsc_graph():
     
         fig.suptitle('TSC (1984) 2D Graph (n_h)')
     
+    # need to redo this (since most of density is dominated by CM81 solution)
     def int_envelope_mass(self):
         print("Integrating...")
 
         # times AU for all self.radius
         radius_AU = [[value * param.AU for value in row] for row in self.radius]
+        
+        self.tau_2  = [(param.omega*t)**2* param.cs*t /param.AU for t in param.time]
+        self.centrifugal_radius = [1/16 * param.cs * (0.975**3) * t**3 * param.omega**2 / param.AU for t in param.time]
+        self.r_env  = [param.G*param.M/(2*param.cs**2) / param.AU for t in param.time]
 
         theta_values = np.linspace(param.min_theta, np.pi/2, param.theta_pts)
         
@@ -648,14 +585,18 @@ class tsc_graph():
                     # unit test for radius and r_grid
                     if radius_AU[t][i]-self.r_grid[t][i] < 0 or self.r_grid[t][i+1]-radius_AU[t][i]<0:
                         print(self.r_grid[t][i], radius_AU[t][i], self.r_grid[t][i+1])                        
- 
-                    if radius_AU[t][i+1] > self.tau_2[t]*param.AU and radius_AU[t][i+1] < self.r_env[t]*param.AU:
+                    
+                    # print(radius_AU[t][i+1], self.tau_2[t]*param.AU)
+                    if radius_AU[t][i+1] > self.centrifugal_radius[t]*param.AU and radius_AU[t][i+1] < self.r_env[t]*param.AU:
+                        # print("Success", t)
                         if param.M_H*self.nh_density[t][theta][i]<0:
                             print(t, theta, i, param.M_H*self.nh_density[t][theta][i])
                         
                         if param.M_H*self.nh_density[t][theta][i]>0:
                             mass_t  += param.M_H*self.nh_density[t][theta][i] * radius_AU[t][i]**2 * np.sin(theta_values[theta]) * (self.r_grid[t][i+1]-self.r_grid[t][i])
                             v_t     += radius_AU[t][i]**2 * np.sin(theta_values[theta]) * (self.r_grid[t][i+1]-self.r_grid[t][i])
+                    # else:
+                        # print("Fail", t, radius_AU[t][i+1]/param.AU, self.centrifugal_radius[t], self.r_env[t])
            
             self.mass.append(4*np.pi*mass_t * np.pi/2 / param.theta_pts)
             v.append(4*np.pi*v_t * np.pi/2 / param.theta_pts)
@@ -663,7 +604,7 @@ class tsc_graph():
         print("Volume:", [4/3*np.pi * (self.r_env[t]*param.AU)**3 for t in range(len(v))], "Numerical:", v)
         print("Ratio of volume", [v[t] / (4/3*np.pi * (self.r_env[t]*param.AU)**3) for t in range(len(v))])
         print("Mass:", param.M, self.mass)
-        print("Adjusted Mass", [self.mass[t] / (v[t] / (4/3*np.pi * (self.r_env[t]*param.AU)**3)) for t in range(len(v)-1)])
+        # print("Adjusted Mass", [self.mass[t] / (v[t] / (4/3*np.pi * (self.r_env[t]*param.AU)**3)) for t in range(len(v)-1)])
     
     def cgs_mass_env_to_star_disk(self, time):
         r_star = []
@@ -691,9 +632,9 @@ class tsc_graph():
         return mass
 
     def _find_closest_index(self, lst, target_value):
-            closest_index = min(range(len(lst)), key=lambda i: abs(lst[i] - target_value))
+        closest_index = min(range(len(lst)), key=lambda i: abs(lst[i] - target_value))
 
-            return closest_index        
+        return closest_index        
 
 class cassen_graph():
     def __init__(self, r, r_grid, save=False):
@@ -704,7 +645,7 @@ class cassen_graph():
         self.r_env  = [param.G*param.M/(2*param.cs**2) / param.AU for t in param.time]
         self.centrifugal_radius = [1/16 * param.cs * (0.975**3) * t**3 * param.omega**2 / param.AU for t in param.time]
 
-        self.data_param = ["CM", param.cs, param.omega, len(param.time), param.inner_sample_pts, param.inner_theta_pts]
+        self.data_param = ["CM", param.cs, param.omega, len(param.time), param.sample_pts, param.theta_pts]
 
         if os.path.exists(data._get_directory(self.data_param)):
             print('Loading CM81 data...')
@@ -740,10 +681,10 @@ class cassen_graph():
         for time in range(len(param.time)):
             if time != 1:
                 continue
-            for theta in range(param.inner_theta_pts):
+            for theta in range(param.theta_pts):
                 # if theta == 1:
                     # print(theta)
-                # if theta<param.inner_theta_pts-100:
+                # if theta<param.theta_pts-100:
                 #     continue
                 plt.plot([i*param.AU for i in self.radius[time]], [abs(i) for i in self.nh_density[time][theta]])
                     # plt.axvline(self.centrifugal_radius[time])
@@ -752,43 +693,74 @@ class cassen_graph():
         fig, axes = plt.subplots(2, 2)
         axes_flat = axes.flatten()
 
-        theta_values = np.linspace(param.min_theta, np.pi/2, param.inner_theta_pts)
+        theta_values = np.linspace(param.min_theta, np.pi/2, param.theta_pts)
+
+        angles = np.linspace(param.min_theta, np.pi/2, param.theta_pts)
+        radii   = [j/1e3 for j in self.radius[0]]
+        theta, r = np.meshgrid(angles, radii)
+
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
 
         i = 0
         for i, ax in enumerate(axes_flat):
             if i < len(param.time):
                 print(f"graphing progress: {i+1}/{len(param.time)}, currently at {param.time[i]/param.t_acc} t_acc")
-                
-                molecule_counts = [] 
-                for theta in range(len(theta_values)):
-                    molecule_counts.append([abs(j) for j in self.nh_density[i][theta]])
 
-                # Example data in (r, theta) format
-                r_values =  np.array([j/1e3 for j in self.radius[i]])
-                
-                # Convert (r, theta) to (x, y) coordinates
-                x_values = []
-                y_values = []
-                for j, theta in enumerate(theta_values):
-                    x_values.extend(r_values * np.cos(theta))
-                    y_values.extend(r_values * np.sin(theta))
+                ''' This is good, keep it'''
+                density = np.transpose(self.nh_density[i])
 
-                # Create a flattened (x, y) array and corresponding flattened data array
-                x_flat = np.array(x_values)
-                y_flat = np.array(y_values)
-                data_flat = np.array(molecule_counts).flatten()
-
-                # Create a grid in (x, y) coordinates
-                x_grid = [j/1e3 for j in self.radius[i]]
-                y_grid = [j/1e3 for j in self.radius[i]]
-                xx, yy = np.meshgrid(x_grid, y_grid)
-
-                # Interpolate data onto the (x, y) grid
-                data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
-
-                # Create a contour plot with a logarithmic colormap
                 norm = LogNorm(vmin=param.visser_vmin, vmax=param.visser_vmax)
-                im = ax.contourf(xx, yy, data_interp, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm, vmin=param.visser_vmin, vmax=param.visser_vmax)
+                im = ax.contourf(x, y, density, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm, vmin=param.visser_vmin, vmax=param.visser_vmax)                
+
+                '''Test for Coordinate Transformation consistency'''
+                # data_param = ["CM_Cartesian", param.cs, param.omega, len(param.time), param.sample_pts, param.theta_pts]
+                # if os.path.exists(data._get_directory(data_param)):
+                #     print('Loading CM81 Cartesian data...')
+
+                #     self.radius, self.r_grid, self.cm_cgs_density, self.cm_cgs_v_r, self.cm_cgs_v_theta, cgs_v_phi = data.load(data_param)
+
+                #     print("radius",     len(self.radius),          len(self.radius[0]),          len(self.radius[0]))                    # [time][radius]
+                #     print("density",    len(self.cm_cgs_density),   len(self.cm_cgs_density[0]),  len(self.cm_cgs_density[0][0]))         # [time][theta][radius]
+                #     print("v_r",        len(self.cm_cgs_v_r),      len(self.cm_cgs_v_r[0]),       len(self.cm_cgs_v_r[0][0]))            # [time][theta][radius]
+                #     print("v_theta",    len(self.cm_cgs_v_theta),  len(self.cm_cgs_v_theta[0]),   len(self.cm_cgs_v_theta[0][0]))   
+
+                #     x_grid = [j/param.AU/1e3 for j in self.radius[i]]
+                #     y_grid = [j/param.AU/1e3 for j in self.radius[i]]
+                #     xx, yy = np.meshgrid(x_grid, y_grid)
+                #     data_interp = [[value/param.M_H for value in row] for row in self.cm_cgs_density[i]]
+
+                # else:                
+                #     molecule_counts = [] 
+                #     for theta in range(len(theta_values)):
+                #         molecule_counts.append([abs(j) for j in self.nh_density[i][theta]])
+
+                #     # Example data in (r, theta) format
+                #     r_values =  np.array([j/1e3 for j in self.radius[i]])
+                    
+                #     # Convert (r, theta) to (x, y) coordinates
+                #     x_values = []
+                #     y_values = []
+                #     for j, theta in enumerate(theta_values):
+                #         x_values.extend(r_values * np.cos(theta))
+                #         y_values.extend(r_values * np.sin(theta))
+
+                #     # Create a flattened (x, y) array and corresponding flattened data array
+                #     x_flat = np.array(x_values)
+                #     y_flat = np.array(y_values)
+                #     data_flat = np.array(molecule_counts).flatten()
+
+                #     # Create a grid in (x, y) coordinates
+                #     x_grid = [j/1e3 for j in self.radius[i]]
+                #     y_grid = [j/1e3 for j in self.radius[i]]
+                #     xx, yy = np.meshgrid(x_grid, y_grid)
+
+                #     # Interpolate data onto the (x, y) grid
+                #     data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
+                
+                # # Create a contour plot with a logarithmic colormap
+                # norm = LogNorm(vmin=param.visser_vmin, vmax=param.visser_vmax)
+                # im = ax.contourf(xx, yy, data_interp, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm, vmin=param.visser_vmin, vmax=param.visser_vmax)
 
                 ax.set_xlim(0, 10)
                 ax.set_ylim(0, 10)
@@ -911,7 +883,7 @@ class cassen_graph():
                     density = abs(self.nh_density[t][theta][r_star_index])*param.M_H
                     velocity = abs(self.cgs_v_theta[t][theta][r_star_index])
                     radius = r_star[t]
-                    d_theta = np.pi/2 / param.inner_theta_pts
+                    d_theta = np.pi/2 / param.theta_pts
 
                     dmdt += 4*np.pi * radius * density * velocity * d_theta
 
@@ -939,68 +911,3 @@ class cassen_graph():
             closest_index = min(range(len(lst)), key=lambda i: abs(lst[i] - target_value))
 
             return closest_index
-
-class star():
-    def __init__(self):
-        return
-    
-    def get_r_star(self, time):
-        r_star = []
-        for t in [i/31556926 for i in time]:
-                if t<20000:
-                    r_star.append(5*param.AU)
-                elif t>20000 and t<20100:
-                    print("here")
-                    r_star.append(5*param.AU*(1-np.sqrt((t-20000)/100)) + param.r_ps)
-                else:
-                    r_star.append(param.r_ps)
-    
-        # plt.plot([i/param.sun_R for i in r_star])
-        return r_star
-
-    def luminosity_accretion(self, time, mass):
-        def m_d_ode(u):
-            return np.sqrt(1-u) / u**(4/3)
-        
-        r_star = self.get_r_star(time)
-        centrifugal_radius = [1/16 * param.cs * (0.975**3) * t**3 * param.omega**2 for t in time]
-        
-        l_acc = []
-        for t in range(len(time)):
-            dmdt = 0.975 * param.cs**3 / param.G
-            l0 = param.G * mass[t] * dmdt / r_star[t]
-            u_star = r_star[t] / centrifugal_radius[t]
-            print(u_star)
-
-            eta_star    = 0.5
-            eta_d       = 0.75
-
-            print(quad(m_d_ode, u_star, 1))
-            m_d = 1/3 * u_star**(1/3) * quad(m_d_ode, u_star, 1)[0]
-            # print(quad(m_d_ode, u_star, 1))
-
-            luminosity = 1/(6*u_star) * (6*u_star - 2 + (2-5*u_star)*np.sqrt(1-u_star))
-            luminosity += eta_star/2 * (1 - (1-eta_d)*m_d) * (1 - (1-eta_d)*np.sqrt(1-u_star))
-            luminosity *= l0
-
-            l_acc.append(luminosity)
-            
-        # print([i/(3.846*1e33) for i in l_acc])
-        
-        return l_acc
-    
-    def luminosity(self, time, mass):
-        return self.luminosity_accretion(time, mass)
-
-    def disk_inner_radius(self, time, mass):
-        t_evap = 2000
-        l_acc = self.luminosity(time, mass)
-
-        r = []
-        for t in range(len(time)):
-            r.append(np.sqrt(l_acc[t] / (4*np.pi * param.bolzmann * t_evap**4)))
-        
-        print([i/param.AU for i in r])
-        # plt.plot([i/param.AU for i in r])
-
-        return r

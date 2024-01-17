@@ -4,9 +4,10 @@ class param():
     def __init__(self):
         #   universal constant in cgs
         self.AU         = 1.496e+13                            # 1 Astronomical Unit            [cm]
-        self.G          = 6.67e-8                              # Gravitational Constant       
+        self.G          = 6.67e-8                              # Gravitational Constant         [cgs]
         self.M          = 1.989e+33                            # 1 solar mass                   [g]
-        self.sun_R      = 696340 * 1e5                         # radius of sun                  [cm]
+        self.sun_R      = 6.955 * 1e10                         # radius of sun                  [cm]
+        self.sun_L      = 3.827 * 1e33                         # luminosity of sun              [erg/s]
         self.M_H        = 1.6733e-24                           # Mass of hydrogen               [g]
         self.bolzmann   = 5.67 * 1e-5
 
@@ -18,12 +19,12 @@ class param():
         self.r_ps           = 5 * self.sun_R                            # protostellar radius [cm]
         # self.time = [0.5*self.t_acc, self.t_acc]
 
-        self.time           = [0.1*self.t_acc, 0.5*self.t_acc, self.t_acc]
+        # self.time           = [0.1*self.t_acc, 0.5*self.t_acc, self.t_acc]
         # self.time           = [0.05*self.t_acc, 0.1*self.t_acc, 0.2*self.t_acc, 0.3*self.t_acc, 
         #                        0.5*self.t_acc, 0.7*self.t_acc, self.t_acc]                          # time in Visser (2009) [s]
 
-        # dt = 1e-2
-        # self.time = np.linspace(dt*self.t_acc, self.t_acc, int(1/dt))
+        dt = 1e-2
+        self.time = np.linspace(dt*self.t_acc, self.t_acc, int(1/dt))
 
         #   varaible for calculation
         self.sample_pts         = 1000

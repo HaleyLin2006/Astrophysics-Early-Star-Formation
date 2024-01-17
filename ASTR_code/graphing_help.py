@@ -209,6 +209,7 @@ class shu_graph():
 
         fig.suptitle('Shu (1977) 2D Graph (n_h)')
 
+# haven't adopt common radius
 class tsc_graph():
     def __init__(self, z_s1, z_g1, r_grid, r, save=False):
         """
@@ -260,8 +261,6 @@ class tsc_graph():
             print("Initializing radius")
             self.radius_s1      = self.tsc.get_r_s1()
             self.radius_g1      = self.tsc.get_r_g1()
-
-            print("Interpolating Radius...")
 
 
             print("Initializing density")
@@ -646,23 +645,21 @@ class cassen_graph():
         self.centrifugal_radius = [1/16 * param.cs * (0.975**3) * t**3 * param.omega**2 / param.AU for t in param.time]
 
         self.data_param = ["CM", param.cs, param.omega, len(param.time), param.sample_pts, param.theta_pts]
-
         if os.path.exists(data._get_directory(self.data_param)):
             print('Loading CM81 data...')
             self.radius, self.r_grid, self.nh_density, self.cgs_v_r, self.cgs_v_theta, self.cgs_v_phi = data.load(self.data_param)
 
+            print(self.radius[0])
         else:
-            self.r = r
+            self.radius = r
             self.r_grid = r_grid
-            self.radius = []
-            for i in range(len(param.time)):
-                self.radius.append([j/param.AU for j in self.r[i]])
-                print(self.tau_2[i]/1e3, self.radius[i][-1]/1e3)
+
+            print(self.radius[0])
 
             self.cm_envelope = cm81_envelope(self.r)
 
             self.nh_density     = self.cm_envelope.get_density()
-            self.cgs_v_r        = self.cm_envelope.get_u_r()
+            self.cgs_v_r        = self.cm_envelope.get_u_r(if_got_density=True)
             self.cgs_v_theta    = self.cm_envelope.get_u_theta()
             self.cgs_v_phi      = []
 
@@ -679,14 +676,14 @@ class cassen_graph():
     def nh_density_envelope_1d(self):
         theta = 0
         for time in range(len(param.time)):
-            if time != 1:
-                continue
-            for theta in range(param.theta_pts):
+            # if time != 1:
+            #     continue
+            # for theta in range(param.theta_pts):
                 # if theta == 1:
                     # print(theta)
                 # if theta<param.theta_pts-100:
                 #     continue
-                plt.plot([i*param.AU for i in self.radius[time]], [abs(i) for i in self.nh_density[time][theta]])
+            plt.plot([i for i in self.radius[time]], [abs(i) for i in self.nh_density[time][theta]])
                     # plt.axvline(self.centrifugal_radius[time])
 
     def density_envelope_2d(self):
@@ -696,7 +693,7 @@ class cassen_graph():
         theta_values = np.linspace(param.min_theta, np.pi/2, param.theta_pts)
 
         angles = np.linspace(param.min_theta, np.pi/2, param.theta_pts)
-        radii   = [j/1e3 for j in self.radius[0]]
+        radii   = [j/param.AU/1e3 for j in self.radius[0]]
         theta, r = np.meshgrid(angles, radii)
 
         x = r * np.cos(theta)
@@ -708,10 +705,10 @@ class cassen_graph():
                 print(f"graphing progress: {i+1}/{len(param.time)}, currently at {param.time[i]/param.t_acc} t_acc")
 
                 ''' This is good, keep it'''
-                density = np.transpose(self.nh_density[i])
+                density = np.transpose([[abs(a) for a in row]for row in self.nh_density[i]])
 
-                norm = LogNorm(vmin=param.visser_vmin, vmax=param.visser_vmax)
-                im = ax.contourf(x, y, density, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm, vmin=param.visser_vmin, vmax=param.visser_vmax)                
+                norm = LogNorm(vmin=1e7, vmax=1e10)
+                im = ax.contourf(x, y, density, cmap='gist_rainbow_r', norm=norm, levels=np.logspace(4,9,100))                
 
                 '''Test for Coordinate Transformation consistency'''
                 # data_param = ["CM_Cartesian", param.cs, param.omega, len(param.time), param.sample_pts, param.theta_pts]
@@ -759,8 +756,8 @@ class cassen_graph():
                 #     data_interp = griddata((x_flat, y_flat), data_flat, (xx, yy), method='linear')
                 
                 # # Create a contour plot with a logarithmic colormap
-                # norm = LogNorm(vmin=param.visser_vmin, vmax=param.visser_vmax)
-                # im = ax.contourf(xx, yy, data_interp, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm, vmin=param.visser_vmin, vmax=param.visser_vmax)
+                # norm = LogNorm(vmin=1e7, vmax=1e10)
+                # im = ax.contourf(xx, yy, data_interp, cmap='gist_rainbow_r', levels=np.logspace(4,9,100), norm=norm)
 
                 ax.set_xlim(0, 10)
                 ax.set_ylim(0, 10)

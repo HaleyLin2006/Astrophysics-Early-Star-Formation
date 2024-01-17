@@ -13,7 +13,8 @@ param = param()
 data = data()
 
 # make grid
-r_env  = [param.G*param.M/(2*param.cs**2) for t in param.time]
+r_env  = param.G*param.M/(2*param.cs**2)
+
 r_star = []
 for t in [i/31556926 for i in param.time]:
             if t<20000:
@@ -25,7 +26,7 @@ for t in [i/31556926 for i in param.time]:
 
 sc_inner_r = "{:e}".format(0.1*param.AU)
 a, inner_r_exp = sc_inner_r.split('e')
-sc_r_env  = "{:e}".format(r_env[0])
+sc_r_env  = "{:e}".format(1e17)             # close to r_env
 a, r_env_exp = sc_r_env.split('e')
 
 r_grid = []
@@ -235,10 +236,12 @@ disk = disk()
 
 ################ Star ################
 # r_star = star.get_r_star()
+# plt.plot([i/param.t_acc for i in param.time], [i/param.sun_R for i in r_star])
 # star_mass = envelope.cgs_env_to_star_mass(r_star=r_star)
-# l_acc = star.luminosity_accretion(param.time, star_mass)
-# plt.plot([i/param.t_acc for i in param.time], [i/(3.846*1e33) for i in l_acc])
+# luminosity = star.luminosity(star_mass, const=True)
+# plt.plot([i/param.t_acc for i in param.time], [i/(3.846*1e33) for i in luminosity])
 # disk_inner_radius = star.disk_inner_radius(star_mass)
+# plt.plot([i/param.t_acc for i in param.time], disk_inner_radius)
 
 ############### Envelope ################
 # env_mass = envelope.cgs_env_mass()
@@ -249,7 +252,9 @@ disk = disk()
 # plt.plot([i/param.t_acc for i in param.time], [i/param.M for i in env_to_star_mass])
 
 ############### Disk ################
-# disk.disk_evol()
+# disk.volume()
+disk_mass = disk.disk_evol()
+plt.plot([i/param.t_acc for i in param.time], [i/param.M for i in disk_mass])
 
 # plt.xscale('log')
 # plt.yscale('log')

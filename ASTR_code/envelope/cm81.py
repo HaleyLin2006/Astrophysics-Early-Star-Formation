@@ -13,28 +13,66 @@ class cm81_envelope():
     def __init__(self, r):
         self.r = r
         self.r_c = self.get_centrifugal_radius()
+        theta_values = np.linspace(param.min_theta, np.pi/2, param.theta_pts)
+        
+        print(self.r[0])
+        self.theta_0_ls = np.zeros((len(param.time), param.theta_pts, len(self.r[0])))
+        for time in tqdm(range(len(param.time)), desc='calculate theta_0'):
+            r_ratio = [self.r_c[time]/self.r[time][i] for i in range(len(self.r[time]))]
+            cos_theta = [np.cos(theta_values[theta]) for theta in range(param.theta_pts)]
+
+            for theta in range(param.theta_pts):
+                for i in range(len(self.r[time])):
+                    # theta_0 = np.arccos(np.roots([self.r_c[time]/self.r[time][i], 1-(self.r_c[time]/self.r[time][i]), 0, -cos_theta])[2])
+                    theta_0 = np.arccos(np.roots([r_ratio[i], 1-(r_ratio[i]), 0, -cos_theta[theta]])[2])
+                    self.theta_0_ls[time][theta][i] = theta_0
 
     def get_centrifugal_radius(self):
         return [1/16*param.cs*(0.975)**3 * t**3 * param.omega**2 for t in param.time]
     
-    def get_u_r(self):
+    def get_u_r(self, if_got_density=False):
+        if if_got_density == True:
+            return self.u_r
+        
         r_c = self.get_centrifugal_radius()
         theta_values = np.linspace(param.min_theta, np.pi/2, param.theta_pts)
 
+        # TODO: Speed up
         # self.u_r = []
         self.u_r = np.zeros((len(param.time), param.theta_pts, len(self.r[0])))
         for time in tqdm(range(len(param.time)), desc='get_u_r'):
-            # self.u_r.append([])
             for theta in range(param.theta_pts):
-                # self.u_r[-1].append([])
+                cos_theta = np.cos(theta_values[theta])
                 for i in range(len(self.r[time])):
-                    # print([r_c[time]/self.r[time][i], 1-(r_c[time]/self.r[time][i]), 0, -np.cos(theta_values[theta])])
-                    theta_0 = np.arccos(np.roots([r_c[time]/self.r[time][i], 1-(r_c[time]/self.r[time][i]), 0, -np.cos(theta_values[theta])])[2])
-                    u_r_i = -np.sqrt(param.G*param.M /self.r[time][i]) * np.sqrt(1+np.cos(theta_values[theta])/theta_0)
+                    theta_0 = self.theta_0_ls[time][theta][i]
+                    u_r_i = -np.sqrt(param.G*param.M /self.r[time][i]) * np.sqrt(1+cos_theta/theta_0)
 
                     self.u_r[time][theta][i] = u_r_i
                     # self.u_r[-1][-1].append(u_r_i)
+
         return self.u_r
+
+        # self.u_r = np.zeros((len(param.time), param.theta_pts, len(self.r[0])))
+        # for time in tqdm(range(len(param.time)), desc='get_u_r'):
+        #     for theta in range(param.theta_pts):
+        #         theta_values_theta = np.cos(theta_values[theta])
+        #         roots_coeffs = [r_c[time] / self.r[time][i] for i in range(len(self.r[time]))] + [1, 0, -theta_values_theta]
+        #         theta_0 = np.arccos(np.roots(roots_coeffs)[2])
+        #         u_r_i = -np.sqrt(param.G * param.M / self.r[time][0]) * np.sqrt(1 + np.cos(theta_values_theta) / theta_0)
+        #         self.u_r[time][theta][:] = u_r_i
+
+
+        # self.u_r = np.zeros((len(param.time), param.theta_pts, len(self.r[0])))
+        # for time in tqdm(range(len(param.time)), desc='get_u_r'):
+        #     for theta in range(param.theta_pts):
+        #         theta_values_theta = np.cos(theta_values[theta])
+        #         roots_coeffs = [[r_c[time]/self.r[time][i] for i in range(len(self.r[time]))], [1-(r_c[time]/self.r[time][i]) for i in range(len(self.r[time]))], 0, -theta_values_theta]
+
+        #         theta_0 = np.arccos(np.roots(roots_coeffs)[2])
+        #         u_r_i = -np.sqrt(param.G * param.M / self.r[time][:]) * np.sqrt(1 + np.cos(theta_values_theta) / theta_0)
+        #         self.u_r[time][theta][:] = u_r_i
+
+        # return self.u_r
     
     def get_u_theta(self):
         r_c = self.get_centrifugal_radius()
@@ -48,7 +86,7 @@ class cm81_envelope():
                 # self.u_r[-1].append([])
                 for i in range(len(self.r[time])):
                     # print([r_c[time]/self.r[time][i], 1-(r_c[time]/self.r[time][i]), 0, -np.cos(theta_values[theta])])
-                    theta_0 = np.arccos(np.roots([r_c[time]/self.r[time][i], 1-(r_c[time]/self.r[time][i]), 0, -np.cos(theta_values[theta])])[2])
+                    theta_0 = self.theta_0_ls[time][theta][i]
                     u_theta_i = -np.sqrt(param.G*param.M /self.r[time][i]) * np.sqrt(1+np.cos(theta_values[theta])/theta_0) * (np.cos(theta_0)-np.cos(theta))/np.sin(theta)
 
                     self.u_theta[time][theta][i] = u_theta_i
@@ -61,7 +99,7 @@ class cm81_envelope():
 
         dmdt = (0.975)*param.cs**3/param.G
         r_c = self.get_centrifugal_radius()
-        u_r  = self.get_u_r()
+        self.u_r  = self.get_u_r()
         
         self.density = []
         for time in tqdm(range(len(param.time)), desc='get_density'):
@@ -69,8 +107,8 @@ class cm81_envelope():
             for theta in range(param.theta_pts):
                 self.density[-1].append([])
                 for i in range(len(self.r[time])):
-                    theta_0 = np.arccos(np.roots([r_c[time]/self.r[time][i], 1-(r_c[time]/self.r[time][i]), 0, -np.cos(theta_values[theta])])[2])
-                    density_i = dmdt/(4*np.pi*self.r[time][i]**2 * u_r[time][theta][i]) / (1+2*r_c[time]/self.r[time][i]*leg(np.cos(theta_0)))
+                    theta_0 = self.theta_0_ls[time][theta][i]
+                    density_i = dmdt/(4*np.pi*self.r[time][i]**2 * abs(self.u_r[time][theta][i])) / (1+2*r_c[time]/self.r[time][i]*leg(np.cos(theta_0)))
 
                     self.density[-1][-1].append(density_i/param.M_H)
 

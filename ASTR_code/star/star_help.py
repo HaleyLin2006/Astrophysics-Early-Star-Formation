@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import quad
+import matplotlib.pyplot as plt
 import os
 import sys
 
@@ -17,13 +18,13 @@ class star():
     def get_r_star(self):
         r_star = []
         for t in [i/31556926 for i in param.time]:
-                if t<20000:
-                    r_star.append(5*param.AU)
-                elif t>20000 and t<20100:
-                    print("here")
-                    r_star.append(5*param.AU*(1-np.sqrt((t-20000)/100)) + param.r_ps)
-                else:
-                    r_star.append(param.r_ps)
+            if t<20000:
+                r_star.append(5*param.AU)
+            elif t>20000 and t<20100:
+                print("here")
+                r_star.append(5*param.AU*(1-np.sqrt((t-20000)/100)) + param.r_ps)
+            else:
+                r_star.append(param.r_ps)
     
         # plt.plot([i/param.sun_R for i in r_star])
         return r_star
@@ -34,10 +35,11 @@ class star():
         
         r_star = self.get_r_star()
         centrifugal_radius = [1/16 * param.cs * (0.975**3) * t**3 * param.omega**2 for t in param.time]
-        
+        dmdt = 0.975 * param.cs**3 / param.G
+
         l_acc = []
         for t in range(len(param.time)):
-            dmdt = 0.975 * param.cs**3 / param.G
+            
             l0 = param.G * mass[t] * dmdt / r_star[t]
             u_star = r_star[t] / centrifugal_radius[t]
 
@@ -58,16 +60,19 @@ class star():
         
         return l_acc
     
-    def luminosity(self, mass):
-        return self.luminosity_accretion(mass)
+    def luminosity(self, mass, const=False):
+        if const == False:
+            return self.luminosity_accretion(mass)
+        if const == True:
+            return [param.sun_L for i in param.time]
 
-    def disk_inner_radius(self, mass):
+    def disk_inner_radius(self, mass, const_lum=False):
         t_evap = 2000
-        l_acc = self.luminosity(mass)
+        lum = self.luminosity(mass, const=const_lum)
 
         r = []
         for t in range(len(param.time)):
-            r.append(np.sqrt(l_acc[t] / (4*np.pi * param.bolzmann * t_evap**4)))
+            r.append(np.sqrt(lum[t] / (4*np.pi * param.bolzmann * t_evap**4)))
         
         # print([i/param.AU for i in r])
         # plt.plot([i/param.AU for i in r])
